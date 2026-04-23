@@ -33,7 +33,7 @@ func New(pinger service.PingerService) http.HandlerFunc {
 
 		slog.Debug("request decoded")
 
-		id, err := pinger.StartMonitoring(req.URL, req.Interval)
+		id, err := pinger.StartMonitoring(r.Context(), req.URL, req.Interval)
 		if err != nil {
 			slog.Error("failed to start monitoring", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)

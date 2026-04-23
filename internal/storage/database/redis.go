@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
+	"github.com/Zapi-web/gopher-pinger/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -13,7 +14,7 @@ type RedisDb struct {
 	rdb *redis.Client
 }
 
-type DataStruct struct {
+type dataStruct struct {
 	Url             string `redis:"url"`
 	LastTimeChecked int    `redis:"last_time_checked"`
 	LastCode        int    `redis:"last_code"`
@@ -39,12 +40,19 @@ func New(addr string) (*RedisDb, error) {
 	return &r, nil
 }
 
-func (r *RedisDb) Set(ctx context.Context, key string, value DataStruct) error {
-	if key == "" || value.Url == "" {
+func (r *RedisDb) Set(ctx context.Context, key string, value service.Target) error {
+	if key == "" || value.URL == "" {
 		return domain.ErrInputisEmpty
 	}
 
-	err := r.rdb.HSet(ctx, key, value).Err()
+	setValue := dataStruct{
+		Url:             value.URL,
+		LastTimeChecked: value.LastTimeChecked,
+		LastCode:        value.LastCode,
+		Interval:        value.Interval,
+	}
+
+	err := r.rdb.HSet(ctx, key, setValue).Err()
 
 	if err != nil {
 		return fmt.Errorf("failed to set a value to database %w", err)
@@ -55,25 +63,32 @@ func (r *RedisDb) Set(ctx context.Context, key string, value DataStruct) error {
 	return nil
 }
 
-func (r *RedisDb) Get(ctx context.Context, key string) (DataStruct, error) {
+func (r *RedisDb) Get(ctx context.Context, key string) (service.Target, error) {
 	if key == "" {
-		return DataStruct{}, domain.ErrInputisEmpty
+		return service.Target{}, domain.ErrInputisEmpty
 	}
-	var res DataStruct
+	var res dataStruct
 
 	err := r.rdb.HGetAll(ctx, key).Scan(&res)
 
 	if err != nil {
-		return DataStruct{}, fmt.Errorf("failed to get a value from a database %w", err)
+		return service.Target{}, fmt.Errorf("failed to get a value from a database %w", err)
 	}
 
 	if res.Url == "" {
-		return DataStruct{}, domain.ErrNotFound
+		return service.Target{}, domain.ErrNotFound
+	}
+
+	val := service.Target{
+		URL:             res.Url,
+		LastTimeChecked: res.LastTimeChecked,
+		LastCode:        res.LastCode,
+		Interval:        res.Interval,
 	}
 
 	slog.Info("value retrieved from redis", "ULID", key)
 
-	return res, nil
+	return val, nil
 }
 
 func (r *RedisDb) Delete(ctx context.Context, key string) error {

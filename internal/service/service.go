@@ -10,7 +10,7 @@ import (
 )
 
 type PingerService interface {
-	StartMonitoring(url string, interval int) (ulid.ULID, error)
+	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
 }
 
 type ProcessStore interface {
@@ -19,17 +19,32 @@ type ProcessStore interface {
 	Delete(key ulid.ULID) error
 }
 
-type pingerService struct {
-	processes ProcessStore
+type StateStore interface {
+	Set(ctx context.Context, key string, value Target) error
+	Get(ctx context.Context, key string) (Target, error)
+	Delete(ctx context.Context, key string) error
 }
 
-func NewService(p ProcessStore) PingerService {
+type Target struct {
+	URL             string
+	LastTimeChecked int
+	LastCode        int
+	Interval        int
+}
+
+type pingerService struct {
+	processes ProcessStore
+	state     StateStore
+}
+
+func NewService(p ProcessStore, s StateStore) PingerService {
 	return &pingerService{
 		processes: p,
+		state:     s,
 	}
 }
 
-func (s *pingerService) StartMonitoring(url string, interval int) (ulid.ULID, error) {
+func (s *pingerService) StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error) {
 	id, err := keygen.GetKey()
 	if err != nil {
 		return ulid.ULID{}, err
@@ -37,6 +52,15 @@ func (s *pingerService) StartMonitoring(url string, interval int) (ulid.ULID, er
 
 	cancel := pinger.Start(url, time.Duration(interval)*time.Second)
 	err = s.processes.Set(id, cancel)
+
+	if err != nil {
+		return ulid.ULID{}, err
+	}
+
+	err = s.state.Set(ctx, id.String(), Target{
+		URL:      url,
+		Interval: interval,
+	})
 
 	if err != nil {
 		return ulid.ULID{}, err
