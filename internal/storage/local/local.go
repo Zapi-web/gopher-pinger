@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
@@ -30,6 +31,7 @@ func (m *MapStorage) Set(key ulid.ULID, value context.CancelFunc) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.mapStr[key] = value
+	slog.Info("key added", "ULID", key)
 
 	return nil
 }
@@ -62,6 +64,7 @@ func (m *MapStorage) Delete(key ulid.ULID) error {
 	}
 
 	delete(m.mapStr, key)
+	slog.Info("key deleted", "ULID", key)
 
 	return nil
 }
