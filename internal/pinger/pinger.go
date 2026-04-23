@@ -7,11 +7,16 @@ import (
 	"time"
 )
 
+type CheckResult struct {
+	ID     string
+	Status int
+}
+
 var sharedClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
-func Start(url string, interval time.Duration) context.CancelFunc {
+func Start(id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	ticker := time.NewTicker(interval)
 
@@ -20,7 +25,7 @@ func Start(url string, interval time.Duration) context.CancelFunc {
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("pinger stopped", "url", url)
+				slog.Info("pinger stopped", "ULID", id, "url", url)
 				return
 			case <-ticker.C:
 				status, err := ping(ctx, url)
@@ -30,12 +35,14 @@ func Start(url string, interval time.Duration) context.CancelFunc {
 					continue
 				}
 
-				slog.Info("url pinged", "url", url, "code", status)
+				results <- CheckResult{ID: id, Status: status}
+
+				slog.Info("url pinged", "ULID", id, "url", url, "code", status)
 			}
 		}
 	}()
 
-	slog.Info("pinger started", "url", url, "interval", interval)
+	slog.Info("pinger started", "ULID", id, "url", url, "interval", interval)
 
 	return cancel
 }

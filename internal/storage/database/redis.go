@@ -16,7 +16,7 @@ type RedisDb struct {
 
 type dataStruct struct {
 	Url             string `redis:"url"`
-	LastTimeChecked int    `redis:"last_time_checked"`
+	LastTimeChecked string `redis:"last_time_checked"`
 	LastCode        int    `redis:"last_code"`
 	Interval        int    `redis:"interval"`
 }
@@ -103,6 +103,19 @@ func (r *RedisDb) Delete(ctx context.Context, key string) error {
 	}
 
 	slog.Info("key deleted from redis", "ULID", key)
+
+	return nil
+}
+
+func (r *RedisDb) UpdateStatus(ctx context.Context, key string, code int, timestamp string) error {
+	err := r.rdb.HSet(ctx, key,
+		"last_code", code,
+		"last_time_checked", timestamp,
+	).Err()
+
+	if err != nil {
+		return fmt.Errorf("failed to update status: %w", err)
+	}
 
 	return nil
 }

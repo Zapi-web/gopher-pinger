@@ -23,11 +23,12 @@ type StateStore interface {
 	Set(ctx context.Context, key string, value Target) error
 	Get(ctx context.Context, key string) (Target, error)
 	Delete(ctx context.Context, key string) error
+	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
 }
 
 type Target struct {
 	URL             string
-	LastTimeChecked int
+	LastTimeChecked string
 	LastCode        int
 	Interval        int
 }
@@ -35,6 +36,7 @@ type Target struct {
 type pingerService struct {
 	processes ProcessStore
 	state     StateStore
+	results   chan pinger.CheckResult
 }
 
 func NewService(p ProcessStore, s StateStore) PingerService {
@@ -50,7 +52,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(url, time.Duration(interval)*time.Second)
+	cancel := pinger.Start(id.String(), url, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
@@ -67,4 +69,10 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	}
 
 	return id, nil
+}
+
+func (s *pingerService) ResultsMonitoring() {
+	for res := range s.results {
+		s.state.UpdateStatus(context.Background(), res.ID, res.Status, time.Now().Format(time.RFC822))
+	}
 }
