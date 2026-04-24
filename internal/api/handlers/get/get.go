@@ -1,28 +1,30 @@
-package post
+package get
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/Zapi-web/gopher-pinger/internal/api/handlers/utils"
+	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	"github.com/Zapi-web/gopher-pinger/internal/service"
 )
 
 type Request struct {
-	URL      string `json:"url"`
-	Interval int    `json:"interval"`
+	Id string `json:"id"`
 }
 
 type Response struct {
-	Id string `json:"id"`
+	URL             string `json:"url"`
+	LastTimeChecked string `json:"last_time_checked"`
+	LastCode        int    `json:"last_code"`
+	Interval        int    `json:"interval"`
 }
 
 func New(pinger service.PingerService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
-
-		r.Body = http.MaxBytesReader(w, r.Body, 1024*10)
 
 		req, err := utils.Decode[Request](r)
 
@@ -32,17 +34,23 @@ func New(pinger service.PingerService) http.HandlerFunc {
 			return
 		}
 
-		id, err := pinger.StartMonitoring(r.Context(), req.URL, req.Interval)
+		data, err := pinger.GetProcess(r.Context(), req.Id)
+
 		if err != nil {
-			slog.Error("failed to start monitoring", "err", err)
+			if errors.Is(err, domain.ErrNotFound) {
+				http.Error(w, "not found", http.StatusNotFound)
+			}
+
+			slog.Warn("failed to get data from database", "ULID", req.Id, "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 
-		slog.Info("monitoring started", "ULID", id)
-
 		res := Response{
-			Id: id.String(),
+			URL:             data.URL,
+			LastTimeChecked: data.LastTimeChecked,
+			LastCode:        data.LastCode,
+			Interval:        data.Interval,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
