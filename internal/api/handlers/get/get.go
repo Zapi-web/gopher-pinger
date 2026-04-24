@@ -39,6 +39,7 @@ func New(pinger service.PingerService) http.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
 				http.Error(w, "not found", http.StatusNotFound)
+				return
 			}
 
 			slog.Warn("failed to get data from database", "ULID", req.Id, "err", err)
