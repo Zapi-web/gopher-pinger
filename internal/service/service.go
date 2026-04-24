@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	keygen "github.com/Zapi-web/gopher-pinger/internal/keyGen"
 	"github.com/Zapi-web/gopher-pinger/internal/pinger"
 	"github.com/oklog/ulid/v2"
@@ -11,6 +14,7 @@ import (
 
 type PingerService interface {
 	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
+	GetProcess(ctx context.Context, id string) (Target, error)
 }
 
 type ProcessStore interface {
@@ -56,7 +60,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
-		return ulid.ULID{}, err
+		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
 	}
 
 	err = s.state.Set(ctx, id.String(), Target{
@@ -71,8 +75,28 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	return id, nil
 }
 
+func (s *pingerService) GetProcess(ctx context.Context, id string) (Target, error) {
+	var data Target
+
+	if id == "" {
+		return data, domain.ErrInputisEmpty
+	}
+
+	data, err := s.state.Get(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return data, err
+		}
+
+		return data, fmt.Errorf("failed getting data from database: %w", err)
+	}
+
+	return data, nil
+}
+
 func (s *pingerService) ResultsMonitoring() {
 	for res := range s.results {
-		s.state.UpdateStatus(context.Background(), res.ID, res.Status, time.Now().Format(time.RFC822))
+		s.state.UpdateStatus(context.Background(), res.ID, res.Status, time.Now().Format(time.RFC3339))
 	}
 }
