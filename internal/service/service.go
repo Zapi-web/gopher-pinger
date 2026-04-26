@@ -151,6 +151,10 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 
 	data, err := s.GetProcess(ctx, id)
 	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrNotFound
+		}
+
 		return fmt.Errorf("failed getting old data: %w", err)
 	}
 
