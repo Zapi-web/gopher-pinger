@@ -86,7 +86,7 @@ func (s *pingerService) GetProcess(ctx context.Context, id string) (Target, erro
 	_, err := ulid.Parse(id)
 
 	if err != nil {
-		return data, domain.ErrInvaliId
+		return data, domain.ErrInvalidId
 	}
 
 	data, err = s.state.Get(ctx, id)
@@ -110,7 +110,7 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 	ulid, err := ulid.Parse(id)
 
 	if err != nil {
-		return domain.ErrInvaliId
+		return domain.ErrInvalidId
 	}
 
 	err = s.state.Delete(ctx, id)

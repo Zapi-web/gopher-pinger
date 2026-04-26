@@ -12,7 +12,7 @@ import (
 )
 
 type Request struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 type Response struct {
@@ -26,6 +26,8 @@ func New(pinger service.PingerService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Request
 
+		r.Body = http.MaxBytesReader(w, r.Body, 1024*10)
+
 		req, err := utils.Decode[Request](r)
 
 		if err != nil {
@@ -34,7 +36,7 @@ func New(pinger service.PingerService) http.HandlerFunc {
 			return
 		}
 
-		data, err := pinger.GetProcess(r.Context(), req.Id)
+		data, err := pinger.GetProcess(r.Context(), req.ID)
 
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
@@ -42,7 +44,7 @@ func New(pinger service.PingerService) http.HandlerFunc {
 				return
 			}
 
-			slog.Warn("failed to get data from database", "ULID", req.Id, "err", err)
+			slog.Warn("failed to get data from database", "ULID", req.ID, "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
