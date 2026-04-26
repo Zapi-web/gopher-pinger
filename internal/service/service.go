@@ -16,6 +16,7 @@ type PingerService interface {
 	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
 	GetProcess(ctx context.Context, id string) (Target, error)
 	DeleteProcess(ctx context.Context, id string) error
+	UpdateProcess(ctx context.Context, id string, interval int) error
 }
 
 type ProcessStore interface {
@@ -48,6 +49,7 @@ func NewService(p ProcessStore, s StateStore) PingerService {
 	return &pingerService{
 		processes: p,
 		state:     s,
+		results:   make(chan pinger.CheckResult, 100),
 	}
 }
 
@@ -61,7 +63,8 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
-		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
+		cancel()
+		return ulid.ULID{}, fmt.Errorf("failed setting data in map: %w", err)
 	}
 
 	err = s.state.Set(ctx, id.String(), Target{
@@ -70,7 +73,9 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	})
 
 	if err != nil {
-		return ulid.ULID{}, err
+		cancel()
+		s.processes.Delete(id)
+		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
 	}
 
 	return id, nil
@@ -128,6 +133,46 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to remove from map: %w", err)
+	}
+
+	return nil
+}
+
+func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval int) error {
+	if id == "" {
+		return domain.ErrInputisEmpty
+	}
+
+	ulid, err := ulid.Parse(id)
+
+	if err != nil {
+		return domain.ErrInvalidId
+	}
+
+	data, err := s.GetProcess(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed getting old data: %w", err)
+	}
+
+	err = s.DeleteProcess(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete old process: %w", err)
+	}
+
+	cancel := pinger.Start(id, data.URL, time.Duration(interval)*time.Second, s.results)
+	err = s.processes.Set(ulid, cancel)
+
+	if err != nil {
+		cancel()
+		return fmt.Errorf("failed to set new process in map: %w", err)
+	}
+
+	data.Interval = interval
+	err = s.state.Set(ctx, id, data)
+
+	if err != nil {
+		cancel()
+		return fmt.Errorf("failed set a data in database: %w", err)
 	}
 
 	return nil
