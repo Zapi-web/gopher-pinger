@@ -15,6 +15,7 @@ import (
 type PingerService interface {
 	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
 	GetProcess(ctx context.Context, id string) (Target, error)
+	DeleteProcess(ctx context.Context, id string) error
 }
 
 type ProcessStore interface {
@@ -82,7 +83,13 @@ func (s *pingerService) GetProcess(ctx context.Context, id string) (Target, erro
 		return data, domain.ErrInputisEmpty
 	}
 
-	data, err := s.state.Get(ctx, id)
+	_, err := ulid.Parse(id)
+
+	if err != nil {
+		return data, domain.ErrInvaliId
+	}
+
+	data, err = s.state.Get(ctx, id)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -93,6 +100,37 @@ func (s *pingerService) GetProcess(ctx context.Context, id string) (Target, erro
 	}
 
 	return data, nil
+}
+
+func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
+	if id == "" {
+		return domain.ErrInputisEmpty
+	}
+
+	ulid, err := ulid.Parse(id)
+
+	if err != nil {
+		return domain.ErrInvaliId
+	}
+
+	err = s.state.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete from database: %w", err)
+	}
+
+	cancel, err := s.processes.Get(ulid)
+	if err != nil {
+		return nil
+	}
+
+	cancel()
+	err = s.processes.Delete(ulid)
+
+	if err != nil {
+		return fmt.Errorf("failed to remove from map: %w", err)
+	}
+
+	return nil
 }
 
 func (s *pingerService) ResultsMonitoring() {
