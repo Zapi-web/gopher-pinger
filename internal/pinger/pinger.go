@@ -8,8 +8,10 @@ import (
 )
 
 type CheckResult struct {
-	ID     string
-	Status int
+	ID       string
+	URL      string
+	Status   int
+	Duration time.Duration
 }
 
 var sharedClient = &http.Client{
@@ -28,14 +30,16 @@ func Start(id string, url string, interval time.Duration, results chan<- CheckRe
 				slog.Info("pinger stopped", "ULID", id, "url", url)
 				return
 			case <-ticker.C:
+				start := time.Now()
 				status, err := ping(ctx, url)
+				dur := time.Since(start)
 
 				if err != nil {
 					slog.Warn("ping error", "url", url, "err", err)
 					continue
 				}
 
-				results <- CheckResult{ID: id, Status: status}
+				results <- CheckResult{ID: id, URL: url, Status: status, Duration: dur}
 
 				slog.Info("url pinged", "ULID", id, "url", url, "code", status)
 			}

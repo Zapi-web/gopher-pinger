@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
@@ -190,5 +191,8 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 func (s *pingerService) ResultsMonitoring() {
 	for res := range s.results {
 		s.state.UpdateStatus(context.Background(), res.ID, res.Status, time.Now().Format(time.RFC3339))
+
+		s.metrics.PingsTotal.WithLabelValues(res.URL, strconv.Itoa(res.Status)).Inc()
+		s.metrics.PingDuration.WithLabelValues(res.URL).Observe(res.Duration.Seconds())
 	}
 }
