@@ -6,10 +6,11 @@ import (
 )
 
 type Metrics struct {
-	PingsTotal    *prometheus.CounterVec
-	PingDuration  *prometheus.HistogramVec
-	RequestsTotal *prometheus.CounterVec
-	ActiveWorkers prometheus.Gauge
+	PingsTotal      *prometheus.CounterVec
+	PingDuration    *prometheus.HistogramVec
+	RequestsTotal   *prometheus.CounterVec
+	RequestDuration *prometheus.HistogramVec
+	ActiveWorkers   prometheus.Gauge
 }
 
 func New() *Metrics {
@@ -28,7 +29,13 @@ func New() *Metrics {
 		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "pinger_total_requests",
 			Help: "Total number of requests",
-		}, []string{"status"}),
+		}, []string{"method", "status"}),
+
+		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "pinger_request_duration_seconds",
+			Help:    "Time taken to ping a URL",
+			Buckets: prometheus.DefBuckets,
+		}, []string{"method", "status"}),
 
 		ActiveWorkers: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "pinger_active_workers_count",
