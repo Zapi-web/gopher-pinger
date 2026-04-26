@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	keygen "github.com/Zapi-web/gopher-pinger/internal/keyGen"
+	"github.com/Zapi-web/gopher-pinger/internal/metrics"
 	"github.com/Zapi-web/gopher-pinger/internal/pinger"
 	"github.com/oklog/ulid/v2"
 )
@@ -43,13 +44,15 @@ type pingerService struct {
 	processes ProcessStore
 	state     StateStore
 	results   chan pinger.CheckResult
+	metrics   *metrics.Metrics
 }
 
-func NewService(p ProcessStore, s StateStore) PingerService {
+func NewService(p ProcessStore, s StateStore, m *metrics.Metrics) PingerService {
 	return &pingerService{
 		processes: p,
 		state:     s,
 		results:   make(chan pinger.CheckResult, 100),
+		metrics:   m,
 	}
 }
 
@@ -78,6 +81,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
 	}
 
+	s.metrics.ActiveWorkers.Inc()
 	return id, nil
 }
 
@@ -135,6 +139,7 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to remove from map: %w", err)
 	}
 
+	s.metrics.ActiveWorkers.Dec()
 	return nil
 }
 
