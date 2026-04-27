@@ -18,8 +18,8 @@ var sharedClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
-func Start(id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
-	ctx, cancel := context.WithCancel(context.Background())
+func Start(ctx context.Context, id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
+	ctx, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(interval)
 
 	go func() {

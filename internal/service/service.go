@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -58,12 +59,16 @@ func NewService(p ProcessStore, s StateStore, m *metrics.Metrics) PingerService 
 }
 
 func (s *pingerService) StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error) {
+	if interval <= 0 {
+		return ulid.ULID{}, domain.ErrInvalidInterval
+	}
+
 	id, err := keygen.GetKey()
 	if err != nil {
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(id.String(), url, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(ctx, id.String(), url, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
@@ -130,6 +135,7 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 
 	cancel, err := s.processes.Get(ulid)
 	if err != nil {
+		slog.Warn("not found process after deleting from state", "ULID", id)
 		return nil
 	}
 
@@ -145,6 +151,10 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 }
 
 func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval int) error {
+	if interval <= 0 {
+		return domain.ErrInvalidInterval
+	}
+
 	if id == "" {
 		return domain.ErrInputisEmpty
 	}
@@ -169,7 +179,7 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 		return fmt.Errorf("failed to delete old process: %w", err)
 	}
 
-	cancel := pinger.Start(id, data.URL, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(ctx, id, data.URL, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(ulid, cancel)
 
 	if err != nil {
@@ -185,14 +195,27 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 		return fmt.Errorf("failed set a data in database: %w", err)
 	}
 
+	s.metrics.ActiveWorkers.Inc()
 	return nil
 }
 
-func (s *pingerService) ResultsMonitoring() {
-	for res := range s.results {
-		s.state.UpdateStatus(context.Background(), res.ID, res.Status, time.Now().Format(time.RFC3339))
+func (s *pingerService) ResultsMonitoring(ctx context.Context) {
+	select {
+	case res, ok := <-s.results:
+		if !ok {
+			slog.Info("results channel closed, shutting down result monitoring")
+			return
+		}
+
+		err := s.state.UpdateStatus(ctx, res.ID, res.Status, time.Now().Format(time.RFC3339))
+		if err != nil {
+			slog.Error("failed update status", "ulid", res.ID, "err", err)
+		}
 
 		s.metrics.PingsTotal.WithLabelValues(res.URL, strconv.Itoa(res.Status)).Inc()
 		s.metrics.PingDuration.WithLabelValues(res.URL).Observe(res.Duration.Seconds())
+	case <-ctx.Done():
+		slog.Info("stopping result monitoring", "reason", ctx.Err())
+		return
 	}
 }
