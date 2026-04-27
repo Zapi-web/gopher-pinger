@@ -18,7 +18,12 @@ var sharedClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
-func Start(ctx context.Context, id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
+type Locker interface {
+	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
+	Unlock(ctx context.Context, key string) error
+}
+
+func Start(ctx context.Context, locker Locker, id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
 	ctx, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(interval)
 
@@ -31,6 +36,18 @@ func Start(ctx context.Context, id string, url string, interval time.Duration, r
 				return
 			case <-ticker.C:
 				start := time.Now()
+
+				ok, err := locker.Lock(ctx, id, interval-(time.Microsecond*100))
+
+				if err != nil {
+					slog.Error("failed to lock", "ulid", id, "err", err)
+					continue
+				}
+
+				if !ok {
+					continue
+				}
+
 				status, err := ping(ctx, url)
 				dur := time.Since(start)
 

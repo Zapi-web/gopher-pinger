@@ -2,8 +2,10 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	"github.com/redis/go-redis/v9"
@@ -127,4 +129,25 @@ func (r *RedisDb) UpdateStatus(ctx context.Context, key string, code int, timest
 	}
 
 	return nil
+}
+
+func (r *RedisDb) Lock(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	err := r.rdb.SetArgs(ctx, "lock:"+key, "busy", redis.SetArgs{
+		TTL:  ttl,
+		Mode: "NX",
+	}).Err()
+
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to lock db key")
+	}
+
+	return true, nil
+}
+
+func (r *RedisDb) Unlock(ctx context.Context, key string) error {
+	return r.rdb.Del(ctx, "lock:"+key).Err()
 }

@@ -33,6 +33,8 @@ type StateStore interface {
 	Get(ctx context.Context, key string) (domain.Target, error)
 	Delete(ctx context.Context, key string) error
 	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
+	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
+	Unlock(ctx context.Context, key string) error
 }
 
 type pingerService struct {
@@ -61,7 +63,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(ctx, id.String(), url, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(ctx, s.state, id.String(), url, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
@@ -172,7 +174,7 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 		return fmt.Errorf("failed to delete old process: %w", err)
 	}
 
-	cancel := pinger.Start(ctx, id, data.URL, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(ctx, s.state, id, data.URL, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(ulid, cancel)
 
 	if err != nil {
