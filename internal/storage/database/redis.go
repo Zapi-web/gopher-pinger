@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
-	"github.com/Zapi-web/gopher-pinger/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -40,7 +39,7 @@ func New(addr string) (*RedisDb, error) {
 	return &r, nil
 }
 
-func (r *RedisDb) Set(ctx context.Context, key string, value service.Target) error {
+func (r *RedisDb) Set(ctx context.Context, key string, value domain.Target) error {
 	if key == "" || value.URL == "" {
 		return domain.ErrInputisEmpty
 	}
@@ -63,23 +62,23 @@ func (r *RedisDb) Set(ctx context.Context, key string, value service.Target) err
 	return nil
 }
 
-func (r *RedisDb) Get(ctx context.Context, key string) (service.Target, error) {
+func (r *RedisDb) Get(ctx context.Context, key string) (domain.Target, error) {
 	if key == "" {
-		return service.Target{}, domain.ErrInputisEmpty
+		return domain.Target{}, domain.ErrInputisEmpty
 	}
 	var res dataStruct
 
 	err := r.rdb.HGetAll(ctx, key).Scan(&res)
 
 	if err != nil {
-		return service.Target{}, fmt.Errorf("failed to get a value from a database %w", err)
+		return domain.Target{}, fmt.Errorf("failed to get a value from a database %w", err)
 	}
 
 	if res.Url == "" {
-		return service.Target{}, domain.ErrNotFound
+		return domain.Target{}, domain.ErrNotFound
 	}
 
-	val := service.Target{
+	val := domain.Target{
 		URL:             res.Url,
 		LastTimeChecked: res.LastTimeChecked,
 		LastCode:        res.LastCode,
@@ -108,7 +107,17 @@ func (r *RedisDb) Delete(ctx context.Context, key string) error {
 }
 
 func (r *RedisDb) UpdateStatus(ctx context.Context, key string, code int, timestamp string) error {
-	err := r.rdb.HSet(ctx, key,
+	ok, err := r.rdb.HExists(ctx, key, "url").Result()
+
+	if err != nil {
+		return fmt.Errorf("failed to check is key exist: %w", err)
+	}
+
+	if !ok {
+		return domain.ErrNotFound
+	}
+
+	err = r.rdb.HSet(ctx, key,
 		"last_code", code,
 		"last_time_checked", timestamp,
 	).Err()

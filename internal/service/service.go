@@ -17,7 +17,7 @@ import (
 
 type PingerService interface {
 	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
-	GetProcess(ctx context.Context, id string) (Target, error)
+	GetProcess(ctx context.Context, id string) (domain.Target, error)
 	DeleteProcess(ctx context.Context, id string) error
 	UpdateProcess(ctx context.Context, id string, interval int) error
 }
@@ -29,17 +29,10 @@ type ProcessStore interface {
 }
 
 type StateStore interface {
-	Set(ctx context.Context, key string, value Target) error
-	Get(ctx context.Context, key string) (Target, error)
+	Set(ctx context.Context, key string, value domain.Target) error
+	Get(ctx context.Context, key string) (domain.Target, error)
 	Delete(ctx context.Context, key string) error
 	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
-}
-
-type Target struct {
-	URL             string
-	LastTimeChecked string
-	LastCode        int
-	Interval        int
 }
 
 type pingerService struct {
@@ -76,7 +69,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, fmt.Errorf("failed setting data in map: %w", err)
 	}
 
-	err = s.state.Set(ctx, id.String(), Target{
+	err = s.state.Set(ctx, id.String(), domain.Target{
 		URL:      url,
 		Interval: interval,
 	})
@@ -91,8 +84,8 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	return id, nil
 }
 
-func (s *pingerService) GetProcess(ctx context.Context, id string) (Target, error) {
-	var data Target
+func (s *pingerService) GetProcess(ctx context.Context, id string) (domain.Target, error) {
+	var data domain.Target
 
 	if id == "" {
 		return data, domain.ErrInputisEmpty

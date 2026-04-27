@@ -29,8 +29,16 @@ func (m *MapStorage) Set(key ulid.ULID, value context.CancelFunc) error {
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	cancel, ok := m.mapStr[key]
+
+	if ok {
+		slog.Info("canceled old pinger to set new", "ulid", key)
+		cancel()
+	}
+
 	m.mapStr[key] = value
-	slog.Info("key added", "ULID", key)
+	slog.Info("key added", "ulid", key)
 
 	return nil
 }
@@ -63,7 +71,7 @@ func (m *MapStorage) Delete(key ulid.ULID) error {
 	}
 
 	delete(m.mapStr, key)
-	slog.Info("key deleted", "ULID", key)
+	slog.Info("key deleted", "ulid", key)
 
 	return nil
 }
