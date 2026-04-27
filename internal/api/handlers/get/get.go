@@ -44,6 +44,11 @@ func New(pinger service.PingerService) http.HandlerFunc {
 				return
 			}
 
+			if errors.Is(err, domain.ErrInvalidId) || errors.Is(err, domain.ErrInputisEmpty) {
+				http.Error(w, "invalid request", http.StatusBadRequest)
+				return
+			}
+
 			slog.Warn("failed to get data from database", "ULID", req.ID, "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return

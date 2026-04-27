@@ -27,7 +27,7 @@ func Start(ctx context.Context, id string, url string, interval time.Duration, r
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("pinger stopped", "ULID", id, "url", url)
+				slog.Info("pinger stopped", "ulid", id, "url", url)
 				return
 			case <-ticker.C:
 				start := time.Now()
@@ -36,17 +36,20 @@ func Start(ctx context.Context, id string, url string, interval time.Duration, r
 
 				if err != nil {
 					slog.Warn("ping error", "url", url, "err", err)
-					continue
+					status = -1
 				}
 
-				results <- CheckResult{ID: id, URL: url, Status: status, Duration: dur}
-
-				slog.Info("url pinged", "ULID", id, "url", url, "code", status)
+				select {
+				case results <- CheckResult{ID: id, URL: url, Status: status, Duration: dur}:
+					slog.Info("url pinged", "ulid", id, "url", url, "code", status)
+				default:
+					slog.Warn("results channel is full", "ulid", id)
+				}
 			}
 		}
 	}()
 
-	slog.Info("pinger started", "ULID", id, "url", url, "interval", interval)
+	slog.Info("pinger started", "ulid", id, "url", url, "interval", interval)
 
 	return cancel
 }
