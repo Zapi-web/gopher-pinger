@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
@@ -16,6 +17,7 @@ type RedisDb struct {
 }
 
 type dataStruct struct {
+	ID              string `redis:"id"`
 	Url             string `redis:"url"`
 	LastTimeChecked string `redis:"last_time_checked"`
 	LastCode        int    `redis:"last_code"`
@@ -47,6 +49,7 @@ func (r *RedisDb) Set(ctx context.Context, key string, value domain.Target) erro
 	}
 
 	setValue := dataStruct{
+		ID:              value.ID,
 		Url:             value.URL,
 		LastTimeChecked: value.LastTimeChecked,
 		LastCode:        value.LastCode,
@@ -81,6 +84,7 @@ func (r *RedisDb) Get(ctx context.Context, key string) (domain.Target, error) {
 	}
 
 	val := domain.Target{
+		ID:              res.ID,
 		URL:             res.Url,
 		LastTimeChecked: res.LastTimeChecked,
 		LastCode:        res.LastCode,
@@ -106,6 +110,10 @@ func (r *RedisDb) Delete(ctx context.Context, key string) error {
 	slog.Info("key deleted from redis", "ULID", key)
 
 	return nil
+}
+
+func (r *RedisDb) Close() {
+	_ = r.rdb.Close()
 }
 
 func (r *RedisDb) UpdateStatus(ctx context.Context, key string, code int, timestamp string) error {
@@ -150,4 +158,39 @@ func (r *RedisDb) Lock(ctx context.Context, key string, ttl time.Duration) (bool
 
 func (r *RedisDb) Unlock(ctx context.Context, key string) error {
 	return r.rdb.Del(ctx, "lock:"+key).Err()
+}
+
+func (r *RedisDb) GetAllNotLocked(ctx context.Context) ([]domain.Target, error) {
+	var cursor uint64
+	var totalTargets []domain.Target
+
+	for {
+		keys, nextCursor, err := r.rdb.Scan(ctx, cursor, "*", 1000).Result()
+		if err != nil {
+			return totalTargets, fmt.Errorf("failed to read keys: %w", err)
+		}
+
+		for _, key := range keys {
+			if strings.HasPrefix(key, "lock:") {
+				continue
+			}
+
+			target, err := r.Get(ctx, key)
+			if err != nil {
+				slog.Warn("failed to get a value by key from database", "key", err)
+				continue
+			}
+
+			target.ID = strings.TrimPrefix(key, "lock:")
+
+			totalTargets = append(totalTargets, target)
+		}
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return totalTargets, nil
 }

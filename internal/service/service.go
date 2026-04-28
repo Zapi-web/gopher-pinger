@@ -20,6 +20,7 @@ type PingerService interface {
 	GetProcess(ctx context.Context, id string) (domain.Target, error)
 	DeleteProcess(ctx context.Context, id string) error
 	UpdateProcess(ctx context.Context, id string, interval int) error
+	Init(ctx context.Context) error
 }
 
 type ProcessStore interface {
@@ -33,6 +34,7 @@ type StateStore interface {
 	Get(ctx context.Context, key string) (domain.Target, error)
 	Delete(ctx context.Context, key string) error
 	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
+	GetAllNotLocked(ctx context.Context) ([]domain.Target, error)
 	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
 	Unlock(ctx context.Context, key string) error
 }
@@ -51,6 +53,20 @@ func NewService(p ProcessStore, s StateStore, m *metrics.Metrics) PingerService 
 		results:   make(chan pinger.CheckResult, 100),
 		metrics:   m,
 	}
+}
+
+func (s *pingerService) Init(ctx context.Context) error {
+	targets, err := s.state.GetAllNotLocked(ctx)
+
+	if err != nil {
+		return fmt.Errorf("failed to get array of targets: %w", err)
+	}
+
+	for _, target := range targets {
+		pinger.Start(ctx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
+	}
+
+	return nil
 }
 
 func (s *pingerService) StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error) {
@@ -72,6 +88,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 	}
 
 	err = s.state.Set(ctx, id.String(), domain.Target{
+		ID:       id.String(),
 		URL:      url,
 		Interval: interval,
 	})

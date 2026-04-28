@@ -12,7 +12,13 @@ type PingerMetrics interface {
 }
 
 type metricService struct {
-	metrics *metrics.Metrics
+	metrics metrics.Metrics
+}
+
+func NewMetricsService(m metrics.Metrics) *metricService {
+	return &metricService{
+		metrics: m,
+	}
 }
 
 func (m *metricService) NewRequest(method string, status int, duration time.Duration) {
