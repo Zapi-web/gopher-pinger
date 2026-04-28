@@ -50,9 +50,9 @@ func main() {
 	promMetrics := metrics.New()
 
 	metricsInterface := service.NewMetricsService(*promMetrics)
-	controlInterface := service.NewService(processes, state, promMetrics)
+	controlInterface := service.NewService(appCtx, processes, state, promMetrics)
 
-	err = controlInterface.Init(appCtx)
+	err = controlInterface.Init()
 
 	if err != nil {
 		slog.Error("failed to init service", "err", err)

@@ -20,7 +20,7 @@ type PingerService interface {
 	GetProcess(ctx context.Context, id string) (domain.Target, error)
 	DeleteProcess(ctx context.Context, id string) error
 	UpdateProcess(ctx context.Context, id string, interval int) error
-	Init(ctx context.Context) error
+	Init() error
 }
 
 type ProcessStore interface {
@@ -34,7 +34,7 @@ type StateStore interface {
 	Get(ctx context.Context, key string) (domain.Target, error)
 	Delete(ctx context.Context, key string) error
 	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
-	GetAllNotLocked(ctx context.Context) ([]domain.Target, error)
+	GetAll(ctx context.Context) ([]domain.Target, error)
 	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
 	Unlock(ctx context.Context, key string) error
 }
@@ -44,32 +44,34 @@ type pingerService struct {
 	state     StateStore
 	results   chan pinger.CheckResult
 	metrics   *metrics.Metrics
+	appCtx    context.Context
 }
 
-func NewService(p ProcessStore, s StateStore, m *metrics.Metrics) PingerService {
+func NewService(ctx context.Context, p ProcessStore, s StateStore, m *metrics.Metrics) PingerService {
 	return &pingerService{
 		processes: p,
 		state:     s,
 		results:   make(chan pinger.CheckResult, 100),
 		metrics:   m,
+		appCtx:    ctx,
 	}
 }
 
-func (s *pingerService) Init(ctx context.Context) error {
-	targets, err := s.state.GetAllNotLocked(ctx)
+func (s *pingerService) Init() error {
+	targets, err := s.state.GetAll(s.appCtx)
 
 	if err != nil {
 		return fmt.Errorf("failed to get array of targets: %w", err)
 	}
 
 	for _, target := range targets {
-		pinger.Start(ctx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
+		pinger.Start(s.appCtx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
 	}
 
 	return nil
 }
 
-func (s *pingerService) StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error) {
+func (s *pingerService) StartMonitoring(reqCtx context.Context, url string, interval int) (ulid.ULID, error) {
 	if interval <= 0 {
 		return ulid.ULID{}, domain.ErrInvalidInterval
 	}
@@ -79,7 +81,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(ctx, s.state, id.String(), url, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(s.appCtx, s.state, id.String(), url, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
@@ -87,7 +89,7 @@ func (s *pingerService) StartMonitoring(ctx context.Context, url string, interva
 		return ulid.ULID{}, fmt.Errorf("failed setting data in map: %w", err)
 	}
 
-	err = s.state.Set(ctx, id.String(), domain.Target{
+	err = s.state.Set(reqCtx, id.String(), domain.Target{
 		ID:       id.String(),
 		URL:      url,
 		Interval: interval,
@@ -162,7 +164,7 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval int) error {
+func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interval int) error {
 	if interval <= 0 {
 		return domain.ErrInvalidInterval
 	}
@@ -177,7 +179,7 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 		return domain.ErrInvalidId
 	}
 
-	data, err := s.GetProcess(ctx, id)
+	data, err := s.GetProcess(reqCtx, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrNotFound
@@ -186,12 +188,12 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 		return fmt.Errorf("failed getting old data: %w", err)
 	}
 
-	err = s.DeleteProcess(ctx, id)
+	err = s.DeleteProcess(reqCtx, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete old process: %w", err)
 	}
 
-	cancel := pinger.Start(ctx, s.state, id, data.URL, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(s.appCtx, s.state, id, data.URL, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(ulid, cancel)
 
 	if err != nil {
@@ -200,7 +202,7 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 	}
 
 	data.Interval = interval
-	err = s.state.Set(ctx, id, data)
+	err = s.state.Set(reqCtx, id, data)
 
 	if err != nil {
 		cancel()
@@ -211,23 +213,25 @@ func (s *pingerService) UpdateProcess(ctx context.Context, id string, interval i
 	return nil
 }
 
-func (s *pingerService) ResultsMonitoring(ctx context.Context) {
-	select {
-	case res, ok := <-s.results:
-		if !ok {
-			slog.Info("results channel closed, shutting down result monitoring")
+func (s *pingerService) ResultsMonitoring() {
+	for {
+		select {
+		case res, ok := <-s.results:
+			if !ok {
+				slog.Info("results channel closed, shutting down result monitoring")
+				return
+			}
+
+			err := s.state.UpdateStatus(s.appCtx, res.ID, res.Status, time.Now().Format(time.RFC3339))
+			if err != nil {
+				slog.Error("failed update status", "ulid", res.ID, "err", err)
+			}
+
+			s.metrics.PingsTotal.WithLabelValues(res.URL, strconv.Itoa(res.Status)).Inc()
+			s.metrics.PingDuration.WithLabelValues(res.URL).Observe(res.Duration.Seconds())
+		case <-s.appCtx.Done():
+			slog.Info("stopping result monitoring", "reason", s.appCtx.Err())
 			return
 		}
-
-		err := s.state.UpdateStatus(ctx, res.ID, res.Status, time.Now().Format(time.RFC3339))
-		if err != nil {
-			slog.Error("failed update status", "ulid", res.ID, "err", err)
-		}
-
-		s.metrics.PingsTotal.WithLabelValues(res.URL, strconv.Itoa(res.Status)).Inc()
-		s.metrics.PingDuration.WithLabelValues(res.URL).Observe(res.Duration.Seconds())
-	case <-ctx.Done():
-		slog.Info("stopping result monitoring", "reason", ctx.Err())
-		return
 	}
 }

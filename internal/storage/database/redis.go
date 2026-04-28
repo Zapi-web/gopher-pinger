@@ -160,7 +160,7 @@ func (r *RedisDb) Unlock(ctx context.Context, key string) error {
 	return r.rdb.Del(ctx, "lock:"+key).Err()
 }
 
-func (r *RedisDb) GetAllNotLocked(ctx context.Context) ([]domain.Target, error) {
+func (r *RedisDb) GetAll(ctx context.Context) ([]domain.Target, error) {
 	var cursor uint64
 	var totalTargets []domain.Target
 
@@ -180,8 +180,6 @@ func (r *RedisDb) GetAllNotLocked(ctx context.Context) ([]domain.Target, error) 
 				slog.Warn("failed to get a value by key from database", "key", err)
 				continue
 			}
-
-			target.ID = strings.TrimPrefix(key, "lock:")
 
 			totalTargets = append(totalTargets, target)
 		}
