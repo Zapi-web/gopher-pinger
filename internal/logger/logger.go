@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func NewLogger(level string) *slog.Logger {
+func New(level string) *slog.Logger {
 	var logLevel slog.Level
 
 	switch strings.ToLower(level) {

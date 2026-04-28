@@ -1,4 +1,4 @@
-package delete
+package handDelete
 
 import (
 	"errors"
