@@ -20,6 +20,7 @@ type PingerService interface {
 	GetProcess(ctx context.Context, id string) (domain.Target, error)
 	DeleteProcess(ctx context.Context, id string) error
 	UpdateProcess(ctx context.Context, id string, interval int) error
+	ResultsMonitoring()
 	Init() error
 }
 
@@ -58,6 +59,7 @@ func NewService(ctx context.Context, p ProcessStore, s StateStore, m *metrics.Me
 }
 
 func (s *pingerService) Init() error {
+	now := time.Now()
 	targets, err := s.state.GetAll(s.appCtx)
 
 	if err != nil {
@@ -65,8 +67,26 @@ func (s *pingerService) Init() error {
 	}
 
 	for _, target := range targets {
-		pinger.Start(s.appCtx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
+		ulid, err := ulid.Parse(target.ID)
+
+		if err != nil {
+			slog.Warn("bad id in initialize", "ulid", ulid)
+			continue
+		}
+
+		cancel := pinger.Start(s.appCtx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
+
+		err = s.processes.Set(ulid, cancel)
+
+		if err != nil {
+			cancel()
+			slog.Error("failed to set key in map", "ulid", ulid, "err", err)
+			continue
+		}
 	}
+
+	dur := time.Since(now)
+	slog.Info("init complete", "dur", dur.String())
 
 	return nil
 }
