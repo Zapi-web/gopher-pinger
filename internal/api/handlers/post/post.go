@@ -39,13 +39,14 @@ func New(pinger service.PingerService) http.HandlerFunc {
 			return
 		}
 
-		slog.Info("monitoring started", "ULID", id)
+		slog.Info("monitoring started", "ulid", id)
 
 		res := Response{
 			Id: id.String(),
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			slog.Warn("failed to encode response", "err", err)

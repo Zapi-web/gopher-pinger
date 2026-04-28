@@ -21,10 +21,10 @@ func (rw *ResponsWriter) WriteHeader(code int) {
 func LoggingMiddleware(next http.Handler, metrics service.PingerMetrics) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &ResponsWriter{w, http.StatusOK}
-		slog.Info("new request", "method", r.Method)
 
 		timeNow := time.Now()
 		next.ServeHTTP(rw, r)
+		slog.Info("new request", "method", r.Method, "URL", r.URL.Path, "IP", r.RemoteAddr)
 
 		duration := time.Since(timeNow)
 		metrics.NewRequest(r.Method, rw.statusCode, duration)

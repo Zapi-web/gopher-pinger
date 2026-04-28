@@ -33,7 +33,7 @@ func main() {
 	}
 
 	slog.SetDefault(logger.New(cfg.LogLevel))
-	slog.Info("logger initialized", "lvel", cfg.LogLevel)
+	slog.Info("logger initialized", "level", cfg.LogLevel)
 
 	appCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -53,10 +53,11 @@ func main() {
 	controlInterface := service.NewService(appCtx, processes, state, promMetrics)
 
 	err = controlInterface.Init()
+	go controlInterface.ResultsMonitoring()
 
 	if err != nil {
 		slog.Error("failed to init service", "err", err)
-		os.Exit(1)
+		return
 	}
 
 	r := chi.NewRouter()
