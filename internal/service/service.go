@@ -10,6 +10,7 @@ import (
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	keygen "github.com/Zapi-web/gopher-pinger/internal/keyGen"
 	"github.com/Zapi-web/gopher-pinger/internal/pinger"
+	"github.com/Zapi-web/gopher-pinger/internal/service/utils"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -92,9 +93,13 @@ func (s *pingerService) Init() error {
 	return nil
 }
 
-func (s *pingerService) StartMonitoring(reqCtx context.Context, url string, interval int) (ulid.ULID, error) {
+func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, interval int) (ulid.ULID, error) {
 	if interval <= 0 {
 		return ulid.ULID{}, domain.ErrInvalidInterval
+	}
+
+	if !utils.IsValidURL(reqUrl) {
+		return ulid.ULID{}, domain.ErrInvalidURL
 	}
 
 	id, err := keygen.GetKey()
@@ -102,7 +107,7 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, url string, inte
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(s.appCtx, s.state, id.String(), url, time.Duration(interval)*time.Second, s.results)
+	cancel := pinger.Start(s.appCtx, s.state, id.String(), reqUrl, time.Duration(interval)*time.Second, s.results)
 	err = s.processes.Set(id, cancel)
 
 	if err != nil {
@@ -112,7 +117,7 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, url string, inte
 
 	err = s.state.Set(reqCtx, id.String(), domain.Target{
 		ID:       id.String(),
-		URL:      url,
+		URL:      reqUrl,
 		Interval: interval,
 	})
 

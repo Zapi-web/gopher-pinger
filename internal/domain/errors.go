@@ -7,4 +7,5 @@ var (
 	ErrNotFound        = errors.New("key is not found")
 	ErrInvalidId       = errors.New("invalid ID")
 	ErrInvalidInterval = errors.New("invalid interval")
+	ErrInvalidURL      = errors.New("invalid URL")
 )
