@@ -50,7 +50,7 @@ func main() {
 	promMetrics := metrics.New()
 
 	metricsInterface := service.NewMetricsService(*promMetrics)
-	controlInterface := service.NewService(appCtx, processes, state, promMetrics)
+	controlInterface := service.NewService(appCtx, processes, state, metricsInterface)
 
 	err = controlInterface.Init()
 	go controlInterface.ResultsMonitoring()

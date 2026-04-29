@@ -5,12 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	keygen "github.com/Zapi-web/gopher-pinger/internal/keyGen"
-	"github.com/Zapi-web/gopher-pinger/internal/metrics"
 	"github.com/Zapi-web/gopher-pinger/internal/pinger"
 	"github.com/oklog/ulid/v2"
 )
@@ -44,11 +42,11 @@ type pingerService struct {
 	processes ProcessStore
 	state     StateStore
 	results   chan pinger.CheckResult
-	metrics   *metrics.Metrics
+	metrics   PingerMetrics
 	appCtx    context.Context
 }
 
-func NewService(ctx context.Context, p ProcessStore, s StateStore, m *metrics.Metrics) PingerService {
+func NewService(ctx context.Context, p ProcessStore, s StateStore, m PingerMetrics) PingerService {
 	return &pingerService{
 		processes: p,
 		state:     s,
@@ -121,7 +119,7 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, url string, inte
 		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
 	}
 
-	s.metrics.ActiveWorkers.Inc()
+	s.metrics.IncWorker()
 	return id, nil
 }
 
@@ -180,7 +178,7 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to remove from map: %w", err)
 	}
 
-	s.metrics.ActiveWorkers.Dec()
+	s.metrics.DecWorker()
 	return nil
 }
 
@@ -229,7 +227,7 @@ func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interva
 		return fmt.Errorf("failed set a data in database: %w", err)
 	}
 
-	s.metrics.ActiveWorkers.Inc()
+	s.metrics.IncWorker()
 	return nil
 }
 
@@ -247,8 +245,7 @@ func (s *pingerService) ResultsMonitoring() {
 				slog.Error("failed update status", "ulid", res.ID, "err", err)
 			}
 
-			s.metrics.PingsTotal.WithLabelValues(res.URL, strconv.Itoa(res.Status)).Inc()
-			s.metrics.PingDuration.WithLabelValues(res.URL).Observe(res.Duration.Seconds())
+			s.metrics.NewPing(res.URL, res.Status, res.Duration)
 		case <-s.appCtx.Done():
 			slog.Info("stopping result monitoring", "reason", s.appCtx.Err())
 			return
