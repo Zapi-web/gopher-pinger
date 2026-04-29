@@ -13,6 +13,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=PingerService
 type PingerService interface {
 	StartMonitoring(ctx context.Context, url string, interval int) (ulid.ULID, error)
 	GetProcess(ctx context.Context, id string) (domain.Target, error)
@@ -22,12 +23,14 @@ type PingerService interface {
 	Init() error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=ProcessStore
 type ProcessStore interface {
 	Set(key ulid.ULID, value context.CancelFunc) error
 	Get(key ulid.ULID) (context.CancelFunc, error)
 	Delete(key ulid.ULID) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=StateStore
 type StateStore interface {
 	Set(ctx context.Context, key string, value domain.Target) error
 	Get(ctx context.Context, key string) (domain.Target, error)

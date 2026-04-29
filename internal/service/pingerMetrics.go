@@ -7,6 +7,7 @@ import (
 	"github.com/Zapi-web/gopher-pinger/internal/metrics"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=PingerMetrics
 type PingerMetrics interface {
 	NewRequest(method string, status int, duration time.Duration)
 	NewPing(URL string, status int, duration time.Duration)
