@@ -20,8 +20,8 @@ import (
 	"github.com/Zapi-web/gopher-pinger/internal/service"
 	"github.com/Zapi-web/gopher-pinger/internal/storage/database"
 	"github.com/Zapi-web/gopher-pinger/internal/storage/local"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
