@@ -81,7 +81,11 @@ func ping(ctx context.Context, url string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Error("failed to close response body", "err", err)
+		}
+	}()
 
 	return resp.StatusCode, nil
 }

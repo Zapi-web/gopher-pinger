@@ -123,7 +123,12 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, i
 
 	if err != nil {
 		cancel()
-		s.processes.Delete(id)
+		mapErr := s.processes.Delete(id)
+
+		if !errors.Is(mapErr, domain.ErrNotFound) {
+			slog.Warn("failed deleting a data from map", "ulid", id, "err", err)
+		}
+
 		return ulid.ULID{}, fmt.Errorf("failed setting data in database: %w", err)
 	}
 
