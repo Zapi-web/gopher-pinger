@@ -18,6 +18,7 @@ var sharedClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Locker
 type Locker interface {
 	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
 	Unlock(ctx context.Context, key string) error
