@@ -150,7 +150,7 @@ func (r *RedisDb) Lock(ctx context.Context, key string, ttl time.Duration) (bool
 			return false, nil
 		}
 
-		return false, fmt.Errorf("failed to lock db key")
+		return false, fmt.Errorf("failed to lock db key: %w", err)
 	}
 
 	return true, nil
