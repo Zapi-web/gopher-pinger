@@ -13,13 +13,17 @@ variable "environment" {
   }
 }
 
-variable "cidr_block" {
-  type        = string
-  description = "cidr block for vpc"
-  default     = "10.0.0.0/16"
-}
+variable "subnet_config" {
+  description = "config for subnets"
 
-variable "public_subnets" {
-  type        = map(string)
-  description = "public subnets and cidr blocks of them"
+  type = map(object({
+    cidr_block = string
+    az         = string
+    type       = string
+  }))
+
+  validation {
+    condition     = contain(["app", "db", "obs"], var.subnet_config.type)
+    error_message = "type must be app, db or obs only"
+  }
 }

@@ -1,5 +1,5 @@
 resource "aws_vpc" "vpc" {
-  cidr_block = var.cidr_block
+  cidr_block = "10.0.0.0/16"
 
   tags = {
     Name        = "${var.app_name}-${var.environment}-vpc"
@@ -8,15 +8,18 @@ resource "aws_vpc" "vpc" {
 }
 
 resource "aws_subnet" "public-subnet" {
-  vpc_id                  = aws_vpc.vpc.id
-  for_each                = var.public_subnets
-  cidr_block              = each.value
-  availability_zone       = each.key
+  vpc_id = aws_vpc.vpc.id
+
+  for_each = var.subnet_config
+
+  cidr_block              = each.value.cidr_block
+  availability_zone       = each.value.az
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "${var.app_name}-${var.environment}-${each.key}-public-subnet"
+    Name        = "${var.app_name}-${var.environment}-${each.value.type}-${each.value.az}-public-subnet"
     Environment = var.environment
+    Layer       = each.value.type
   }
 }
 
