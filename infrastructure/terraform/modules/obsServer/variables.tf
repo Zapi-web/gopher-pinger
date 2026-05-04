@@ -29,23 +29,22 @@ variable "vpc_id" {
   description = "ID of VPC"
 }
 
-variable "subnet_ids" {
-  type        = list(string)
-  description = "IDs of public subnets"
+variable "subnet_id" {
+  type        = string
+  description = "ID of observability subnet"
 }
 
-variable "app_port" {
-  type        = number
-  description = "Port of app"
-  default     = 8080
-}
-
-variable "monitoring_security_group_id" {
+variable "app_security_group_id" {
   type = string
-  description = "Id of monitoring security group"
+  description = "App security group id"
 }
 
 variable "key_name" {
   type        = string
   description = "SSH key"
+}
+
+variable "admin_ip" {
+  type = string
+  description = "Admin ip for SSH and Grafana"
 }

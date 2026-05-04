@@ -45,6 +45,14 @@ resource "aws_security_group" "app-server-sg" {
     description     = "allow trafic from LB"
   }
 
+  ingress {
+    from_port = 9100
+    to_port = 9100
+    protocol = "tcp"
+    security_groups = [var.monitoring_security_group_id]
+    description = "Allow Prometheus to scrape Node Exporter"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
