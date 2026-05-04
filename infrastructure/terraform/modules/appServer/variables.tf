@@ -19,10 +19,9 @@ variable "linux_instance_type" {
   default     = "t3.micro"
 }
 
-variable "debian_version" {
+variable "debian_version_data_id" {
   type        = string
-  description = "Debian version number for server"
-  default     = "12"
+  description = "Data id of debian version server"
 }
 
 variable "vpc_id" {
