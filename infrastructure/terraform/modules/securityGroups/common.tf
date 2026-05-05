@@ -1,5 +1,13 @@
+locals {
+  target_sgs = {
+    "app" = aws_security_group.app-server-sg.id
+    "db" = aws_security_group.db-server-sg.id
+    "obs" = aws_security_group.obs-server-sg.id
+  }
+}
+
 resource "aws_security_group_rule" "allow_ssh" {
-  for_each = toset([aws_security_group.app-server-sg.id, aws_security_group.db-server-sg.id, aws_security_group.obs-server-sg.id])
+  for_each = local.target_sgs
 
   type              = "ingress"
   from_port         = 22
@@ -10,7 +18,7 @@ resource "aws_security_group_rule" "allow_ssh" {
 }
 
 resource "aws_security_group_rule" "allow_egress" {
-  for_each          = toset([aws_security_group.app-server-sg.id, aws_security_group.db-server-sg.id, aws_security_group.obs-server-sg.id])
+  for_each          = local.target_sgs
   type              = "egress"
   from_port         = 0
   to_port           = 0

@@ -1,5 +1,5 @@
 resource "aws_instance" "obs-server" {
-  for_each = toset(var.subnet_ids)
+  for_each = var.subnet_ids
 
   ami                    = var.debian_version_data_id
   instance_type          = var.linux_instance_type

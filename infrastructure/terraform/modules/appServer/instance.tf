@@ -1,9 +1,9 @@
 resource "aws_instance" "app-linux-server" {
-  for_each = toset(var.subnet_ids)
+  for_each = var.subnet_ids
 
   ami                    = var.debian_version_data_id
   instance_type          = var.linux_instance_type
-  subnet_id              = each.key
+  subnet_id              = each.value
   vpc_security_group_ids = [var.app-sg-id]
   key_name               = var.key_name
 

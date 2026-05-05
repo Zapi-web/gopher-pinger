@@ -32,7 +32,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  type        = list(string)
+  type        = map(string)
   description = "ID of observability subnet"
 }
 

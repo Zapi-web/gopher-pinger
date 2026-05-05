@@ -1,9 +1,11 @@
 resource "aws_lb" "load_balancer" {
+  for_each = var.subnet_ids
+  
   name               = "${var.app_name}-${var.environment}-lb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.lb-sg-id]
-  subnets            = var.subnet_ids
+  subnets            = [each.value]
 
   tags = {
     Name        = "${var.app_name}-${var.environment}-lb"
@@ -24,12 +26,11 @@ resource "aws_lb_target_group" "load_balacer_trg" {
 }
 
 resource "aws_lb_listener" "lb-listener" {
-  load_balancer_arn = aws_lb.load_balancer.arn
-  for_each = {
-    80 = "HTTP"
-  }
-  port     = each.key
-  protocol = each.value
+  for_each = var.subnet_ids
+
+  load_balancer_arn = aws_lb.load_balancer[each.key].arn
+  port     = 80
+  protocol = "HTTP"
 
   default_action {
     type             = "forward"
