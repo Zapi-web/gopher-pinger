@@ -31,7 +31,9 @@ variable "subnet_config" {
     "obs"   = { cidr_block = "10.0.4.0/24", az = "eu-central-1a", type = "obs" }
   }
   validation {
-    condition     = contain(["app", "db", "obs"], var.subnet_config.type)
+    condition = alltrue([
+      for config in var.subnet_config : contains(["app", "db", "obs"], config.type)
+    ])
     error_message = "type must be app, db or obs only"
   }
 }

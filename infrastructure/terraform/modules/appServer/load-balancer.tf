@@ -38,8 +38,17 @@ resource "aws_lb_listener" "lb-listener" {
 }
 
 resource "aws_lb_target_group_attachment" "lb_attachment" {
-  for_each         = [80, 443]
+  for_each = {
+    for pair in local.instance_port_matrix : "${pair[0]}-${pair[1]}" => {
+      instance_key = pair[0]
+      port         = pair[1]
+    }
+  }
   target_group_arn = aws_lb_target_group.load_balacer_trg.arn
-  target_id        = aws.app_linux_server.id
-  port             = each.key
+  target_id        = aws_instance.app-linux-server[each.value.instance_key].id
+  port             = each.value.port
+}
+
+locals {
+  instance_port_matrix = setproduct(keys(aws_instance.app-linux-server), ["80", "443"])
 }
