@@ -1,12 +1,12 @@
 variable "app_name" {
   type        = string
-  default = "default-app"
+  default     = "default-app"
   description = "App name"
 }
 
 variable "environment" {
   type        = string
-  default = "test"
+  default     = "test"
   description = "App environment"
 
   validation {
@@ -31,13 +31,13 @@ variable "vpc_id" {
   description = "ID of VPC"
 }
 
-variable "subnet_id" {
-  type        = string
+variable "subnet_ids" {
+  type        = list(string)
   description = "ID of observability subnet"
 }
 
 variable "obs_security_group_id" {
-  type = string
+  type        = string
   description = "Monitoring security group id"
 }
 

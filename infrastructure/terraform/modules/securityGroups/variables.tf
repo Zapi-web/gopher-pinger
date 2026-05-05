@@ -1,12 +1,12 @@
 variable "app_name" {
   type        = string
-  default = "default-app"
+  default     = "default-app"
   description = "App name"
 }
 
 variable "environment" {
   type        = string
-  default = "test"
+  default     = "test"
   description = "App environment"
 
   validation {
@@ -22,17 +22,17 @@ variable "app_port" {
 }
 
 variable "database_port" {
-  type = number
+  type        = number
   description = "Port of database"
-  default = 6379
+  default     = 6379
 }
 
 variable "admin_ip" {
-  type = string
+  type        = string
   description = "Admin ip for SSH and Grafana"
 }
 
 variable "vpc_id" {
   description = "ID of VPC"
-  type = string
+  type        = string
 }

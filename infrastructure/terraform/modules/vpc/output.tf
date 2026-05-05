@@ -3,7 +3,17 @@ output "vpc_id" {
   value       = aws_vpc.vpc.id
 }
 
-output "public_subnet_ids" {
+output "app_public_subnet_ids" {
   description = "List of IDs of public subnets"
-  value       = [for subnet in aws_aws_subnet.public-subnet : subnet.id]
+  value       = [for subnet in aws_subnet.public-subnet : subnet.id if lookup(subnet.tags, "Layer", "") == "app"]
+}
+
+output "db_public_subnet_ids" {
+  description = "List of IDs of public subnets"
+  value       = [for subnet in aws_subnet.public-subnet : subnet.id if lookup(subnet.tags, "Layer", "") == "db"]
+}
+
+output "obs_public_subnet_ids" {
+  description = "List of IDs of public subnets"
+  value       = [for subnet in aws_subnet.public-subnet : subnet.id if lookup(subnet.tags, "Layer", "") == "obs"]
 }

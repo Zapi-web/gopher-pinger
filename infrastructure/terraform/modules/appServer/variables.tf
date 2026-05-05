@@ -1,12 +1,12 @@
 variable "app_name" {
   type        = string
-  default = "default-app"
+  default     = "default-app"
   description = "App name"
 }
 
 variable "environment" {
   type        = string
-  default = "test"
+  default     = "test"
   description = "App environment"
 
   validation {
@@ -43,12 +43,12 @@ variable "app_port" {
 }
 
 variable "app-sg-id" {
-  type = string
+  type        = string
   description = "App security group ID"
 }
 
 variable "lb-sg-id" {
-  type = string
+  type        = string
   description = "Load-Balancer security group ID"
 }
 

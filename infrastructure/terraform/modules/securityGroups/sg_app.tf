@@ -10,21 +10,21 @@ resource "aws_security_group" "app-server-sg" {
 }
 
 resource "aws_security_group_rule" "allow_lb_to_app" {
-  type = "ingress"
-  from_port = var.app_port
-  to_port = var.app_port
-  protocol = "tcp"
-  security_group_id = aws_security_group.app-server-sg.id
+  type                     = "ingress"
+  from_port                = var.app_port
+  to_port                  = var.app_port
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.app-server-sg.id
   source_security_group_id = aws_security_group.lb-sg.id
-  description = "Allow trafic from lb"
+  description              = "Allow trafic from lb"
 }
 
 resource "aws_security_group_rule" "allow_obs_to_app" {
-  type = "ingress"
-  from_port = 9100
-  to_port = 9100
-  protocol = "tcp"
-  security_group_id = aws_security_group.app-server-sg.id
+  type                     = "ingress"
+  from_port                = 9100
+  to_port                  = 9100
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.app-server-sg.id
   source_security_group_id = aws_security_group.obs-server-sg.id
-  description = "Allow Prometheus to scrape Node Exporter"
+  description              = "Allow Prometheus to scrape Node Exporter"
 }

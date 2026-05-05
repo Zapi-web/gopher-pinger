@@ -1,12 +1,12 @@
 variable "app_name" {
   type        = string
-  default = "default-app"
+  default     = "default-app"
   description = "App name"
 }
 
 variable "environment" {
   type        = string
-  default = "test"
+  default     = "test"
   description = "App environment"
 
   validation {
@@ -37,11 +37,11 @@ variable "subnet_ids" {
 }
 
 variable "db-sg-id" {
-  type = string
+  type        = string
   description = "Database security group id"
 }
 
 variable "key_name" {
-  type = string
+  type        = string
   description = "SSH key"
 }

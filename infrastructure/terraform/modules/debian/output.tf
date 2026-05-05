@@ -1,4 +1,4 @@
 output "debian_version_id" {
   description = "id of debian ${var.debian_version}"
-  value = data.aws_ami.debian[var.debian_version].id
+  value       = data.aws_ami.debian[var.debian_version].id
 }
