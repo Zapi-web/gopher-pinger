@@ -36,17 +36,12 @@ variable "subnet_id" {
   description = "ID of observability subnet"
 }
 
-variable "app_security_group_id" {
+variable "obs_security_group_id" {
   type = string
-  description = "App security group id"
+  description = "Monitoring security group id"
 }
 
 variable "key_name" {
   type        = string
   description = "SSH key"
-}
-
-variable "admin_ip" {
-  type = string
-  description = "Admin ip for SSH and Grafana"
 }

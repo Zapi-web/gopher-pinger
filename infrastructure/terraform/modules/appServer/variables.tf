@@ -42,9 +42,14 @@ variable "app_port" {
   default     = 8080
 }
 
-variable "monitoring_security_group_id" {
+variable "app-sg-id" {
   type = string
-  description = "Id of monitoring security group"
+  description = "App security group ID"
+}
+
+variable "lb-sg-id" {
+  type = string
+  description = "Load-Balancer security group ID"
 }
 
 variable "key_name" {

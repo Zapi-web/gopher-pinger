@@ -4,7 +4,7 @@ resource "aws_instance" "db-server" {
   ami = var.debian_version_data_id
     instance_type = var.linux_instance_type
     subnet_id = each.value
-    vpc_security_group_ids = [aws_security_group.db-server-sg.id]
+    vpc_security_group_ids = [var.db-sg-id]
     key_name = var.key_name
 
     tags = {

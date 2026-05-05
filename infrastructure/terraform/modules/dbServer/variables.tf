@@ -36,20 +36,9 @@ variable "subnet_ids" {
   description = "IDs of public database subnets"
 }
 
-variable "database_port" {
-    type = number
-    description = "Port of database"
-    default = 6379
-}
-
-variable "app_security_group_id" {
+variable "db-sg-id" {
   type = string
-  description = "App security group ID"
-}
-
-variable "monitoring_security_group_id" {
-  type = string
-  description = "Id of monitoring security group"
+  description = "Database security group id"
 }
 
 variable "key_name" {

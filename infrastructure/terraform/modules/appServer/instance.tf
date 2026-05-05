@@ -4,7 +4,7 @@ resource "aws_instance" "app-linux-server" {
   ami                    = var.debian_version_data_id
   instance_type          = var.linux_instance_type
   subnet_id              = each.key
-  vpc_security_group_ids = [aws_security_group.inst-sg.id]
+  vpc_security_group_ids = [var.app-sg-id]
   key_name               = var.key_name
 
   tags = {
