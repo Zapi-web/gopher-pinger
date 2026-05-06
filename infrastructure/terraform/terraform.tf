@@ -1,4 +1,5 @@
 terraform {
+  required_version = "~> 1.14.8"
   backend "s3" {
     bucket         = "amzn-s3-unique-terraform-bucket-271598835315-eu-central-1-an"
     key            = "terraform-tfstate"
@@ -8,7 +9,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "6.43.0"
+      version = "~> 6.43.0"
     }
   }
 }

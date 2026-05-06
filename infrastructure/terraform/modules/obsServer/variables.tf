@@ -26,11 +26,6 @@ variable "debian_version_data_id" {
   description = "Data id of debian version server"
 }
 
-variable "vpc_id" {
-  type        = string
-  description = "ID of VPC"
-}
-
 variable "subnet_ids" {
   type        = map(string)
   description = "ID of observability subnet"
