@@ -9,3 +9,5 @@ on:
 jobs:
     go-tests:
         uses: ./.github/workflows/go.yml
+    tf-linting:
+        uses: ./.github/workflows/terraform.yml
