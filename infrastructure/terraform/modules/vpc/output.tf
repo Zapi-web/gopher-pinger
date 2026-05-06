@@ -5,7 +5,7 @@ output "vpc_id" {
 
 output "app_public_subnet_ids" {
   description = "Map of IDs of public subnets"
-  value       = {
+  value = {
     for k, s in aws_subnet.public-subnet : k => s.id
     if s.tags.Layer == "app"
   }
@@ -13,7 +13,7 @@ output "app_public_subnet_ids" {
 
 output "db_public_subnet_ids" {
   description = "Map of IDs of public subnets"
-  value       = {
+  value = {
     for k, s in aws_subnet.public-subnet : k => s.id
     if s.tags.Layer == "db"
   }
@@ -21,7 +21,7 @@ output "db_public_subnet_ids" {
 
 output "obs_public_subnet_ids" {
   description = "Map of IDs of public subnets"
-   value       = {
+  value = {
     for k, s in aws_subnet.public-subnet : k => s.id
     if s.tags.Layer == "obs"
   }

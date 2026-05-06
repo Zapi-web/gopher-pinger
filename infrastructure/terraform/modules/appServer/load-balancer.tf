@@ -1,6 +1,6 @@
 resource "aws_lb" "load_balancer" {
   for_each = var.subnet_ids
-  
+
   name               = "${var.app_name}-${var.environment}-lb"
   internal           = false
   load_balancer_type = "application"
@@ -29,8 +29,8 @@ resource "aws_lb_listener" "lb-listener" {
   for_each = var.subnet_ids
 
   load_balancer_arn = aws_lb.load_balancer[each.key].arn
-  port     = 80
-  protocol = "HTTP"
+  port              = 80
+  protocol          = "HTTP"
 
   default_action {
     type             = "forward"

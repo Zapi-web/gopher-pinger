@@ -1,7 +1,7 @@
 locals {
   target_sgs = {
     "app" = aws_security_group.app-server-sg.id
-    "db" = aws_security_group.db-server-sg.id
+    "db"  = aws_security_group.db-server-sg.id
     "obs" = aws_security_group.obs-server-sg.id
   }
 }
