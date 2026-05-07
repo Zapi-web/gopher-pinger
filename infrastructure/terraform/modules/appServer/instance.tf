@@ -10,5 +10,6 @@ resource "aws_instance" "app-linux-server" {
   tags = {
     Name        = "${var.app_name}-${var.environment}-app-ec2-instance-${each.key}"
     Environment = var.environment
+    Role        = "app"
   }
 }

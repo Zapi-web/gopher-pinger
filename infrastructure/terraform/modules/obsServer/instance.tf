@@ -10,5 +10,6 @@ resource "aws_instance" "obs-server" {
   tags = {
     Name        = "${var.app_name}-${var.environment}-obs-server-${each.key}"
     Environment = var.environment
+    Role        = "observability"
   }
 }

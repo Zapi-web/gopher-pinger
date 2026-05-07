@@ -10,5 +10,6 @@ resource "aws_instance" "db-server" {
   tags = {
     Name        = "${var.app_name}-${var.environment}-db-server-${each.key}"
     Environment = var.environment
+    Role        = "database"
   }
 }

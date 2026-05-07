@@ -16,7 +16,6 @@ module "security_groups" {
 module "monitoring_server" {
   source = "./modules/obsServer"
 
-  vpc_id                 = module.vpc.vpc_id
   key_name               = "-"
   subnet_ids             = module.vpc.obs_public_subnet_ids
   debian_version_data_id = module.debian.debian_version_id
@@ -26,7 +25,6 @@ module "monitoring_server" {
 module "database_server" {
   source = "./modules/dbServer"
 
-  vpc_id                 = module.vpc.vpc_id
   key_name               = "-"
   db-sg-id               = module.security_groups.db_sg_id
   debian_version_data_id = module.debian.debian_version_id
