@@ -1,0 +1,5 @@
+common_base_packages:
+  - curl
+  - sudo
+  - nano
+  - git
