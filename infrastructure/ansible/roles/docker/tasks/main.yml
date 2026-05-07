@@ -1,0 +1,19 @@
+- name: Add docker repo
+  ansible.builtin.include_tasks: add-repo.yml
+
+- name: Install Docker and Compose packages
+  ansible.builtin.package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - docker-ce-rootless-extras
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+- name: Check is docker started
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true

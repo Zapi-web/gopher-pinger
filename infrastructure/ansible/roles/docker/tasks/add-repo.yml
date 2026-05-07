@@ -1,0 +1,43 @@
+- name: Check apt key in trusted.gpg.d
+  ansible.builtin.file:
+    path: /etc/apt/trusted.gpg.d/docker.asc
+    state: absent
+
+- name: Check old apt in sources.list.d
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/download_docker_com_linux_{{ ansible_facts.distribution }}.list"
+    state: absent
+
+- name: Check old Docker version is not installed
+  ansible.builtin.package:
+    name:
+      - docker
+      - docker.io
+      - docker-engine
+      - docker-compose
+      - docker-compose-v2
+      - containerd
+    state: absent
+
+- name: Check is legacy repo files is not present
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/docker.list"
+    state: absent
+
+- name: Check dependencies
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - python3-debian
+    state: present
+
+- name: Add docker repo
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: "{{ docker_repo_url }}/{{ ansible_facts.distribution }}"
+    suites: "{{ ansible_facts.distribution_release }}"
+    components: stable
+    signed_by: "{{ docker_repo_url }}/{{ ansible_facts.distribution }}/gpg"
+    state: present
+  notify: apt update

@@ -8,3 +8,5 @@
 
 dockerfile
 .dockerignore
+
+infrastructure/
