@@ -1,0 +1,43 @@
+- name: Tear down exiting service
+  community.docker.docker_compose_v2:
+    project_src: gopher-pinger
+    state: absent
+
+- name: Get an app from repo
+  ansible.builtin.git:
+    repo: 'https://github.com/Zapi-web/gopher-pinger'
+    dest: /app/gopher-pinger
+    version: main
+    force: true
+
+- name: Ensure nginx config dir is exists
+  ansible.builtin.file:
+    path: /app/gopher-pinger/nginx
+    state: directory
+    mode: '0755'
+
+- name: Create a nginx config file
+  ansible.builtin.template:
+    src: templates/conf.d.j2
+    dest: /app/gopher-pinger/nginx/default.conf
+    mode: '0644'
+
+- name: Make a docker-compose file
+  ansible.builtin.template:
+    src: templates/docker-compose.j2
+    dest: /app/gopher-pinger/docker-compose.yml
+    mode: '0644'
+
+- name: Start app
+  community.docker.docker_compose_v2:
+    project_src: gopher-pinger
+  register: output
+
+- name: Verify that nginx and up services are running
+  ansible.builtin.assert:
+    that:
+      - nginx_container.State == 'running'
+      - go_container.State == 'running'
+  vars:
+    web_container: "{{ output.containers | selectattr('Service', 'equalto', 'nginx') | first }}"
+    go_container: "{{ output.containers | selectattr('Service', 'equalto', 'go') | first }}"

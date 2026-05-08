@@ -1,0 +1,30 @@
+services:
+    nginx:
+        image: nginx:alpine
+        restart: always
+        ports:
+            - "8080:80"
+            - "443:443"
+        volumes:
+            - ./nginx:/etc/nginx/conf.d/
+        networks:
+            - frontend
+        depends_on:
+            - go
+    go:
+        build: .
+        expose:
+            - {{ app_port | default(80) }}
+        environment:
+            - REDIS_ADDR="db:{{ app_redis_addr | default(6379) }}"
+            - PORT="{{ app_port | default(80) }}"
+            - LOG_LEVEL="{{ app_log_level | default('info') }}"
+        deploy:
+            mode: replicated
+            replicas: "{{ app_replicas_count | default(1) }}"
+        networks:
+            - frontend
+
+networks:
+    frontend:
+        driver: bridge
