@@ -4,14 +4,15 @@ upstream goCluster {
 
 server {
     listen 80;
-    chatset utf-8;
+    charset utf-8;
     access_log off;
-    server_name localhost;
+    server_name _;
 
     location / {
         proxy_pass http://goCluster;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     }
 }

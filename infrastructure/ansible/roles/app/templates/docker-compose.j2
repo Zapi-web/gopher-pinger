@@ -3,7 +3,7 @@ services:
         image: nginx:alpine
         restart: always
         ports:
-            - "8080:80"
+            - "80:80"
             - "443:443"
         volumes:
             - ./nginx:/etc/nginx/conf.d/
@@ -16,7 +16,7 @@ services:
         expose:
             - {{ app_port | default(80) }}
         environment:
-            - REDIS_ADDR="db:{{ app_redis_addr | default(6379) }}"
+            - REDIS_ADDR={{ db_public_ip }}:{{ app_redis_port | default(6379) }}
             - PORT="{{ app_port | default(80) }}"
             - LOG_LEVEL="{{ app_log_level | default('info') }}"
         deploy:

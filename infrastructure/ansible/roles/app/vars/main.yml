@@ -1,4 +1,4 @@
 app_replicas_count: 3
 app_port: 80
 app_log_level: "info"
-app_redis_addr: 6379
+app_redis_port: 6379

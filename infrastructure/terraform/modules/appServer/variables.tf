@@ -36,12 +36,6 @@ variable "subnet_ids" {
   description = "IDs of public subnets"
 }
 
-variable "app_port" {
-  type        = number
-  description = "Port of app"
-  default     = 8080
-}
-
 variable "app-sg-id" {
   type        = string
   description = "App security group ID"
