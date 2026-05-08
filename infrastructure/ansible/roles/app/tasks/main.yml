@@ -1,6 +1,6 @@
 - name: Tear down exiting service
   community.docker.docker_compose_v2:
-    project_src: gopher-pinger
+    project_src: /app/gopher-pinger
     state: absent
 
 - name: Get an app from repo
@@ -39,5 +39,5 @@
       - nginx_container.State == 'running'
       - go_container.State == 'running'
   vars:
-    web_container: "{{ output.containers | selectattr('Service', 'equalto', 'nginx') | first }}"
+    nginx_container: "{{ output.containers | selectattr('Service', 'equalto', 'nginx') | first }}"
     go_container: "{{ output.containers | selectattr('Service', 'equalto', 'go') | first }}"

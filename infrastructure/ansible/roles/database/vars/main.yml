@@ -1,0 +1,3 @@
+database_ping_interval: 5
+database_ping_timeout: 3
+database_ping_retries: 5

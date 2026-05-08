@@ -1,0 +1,24 @@
+- name: Ensure database dir is exists
+  ansible.builtin.file:
+    path: /opt/redis_db
+    state: directory
+    mode: '0755'
+
+- name: Create docker-compose file
+  ansible.builtin.template:
+    src: templates/docker-compose.j2
+    dest: /opt/redis_db/docker-compose.yml
+    mode: '0644'
+
+- name: Start a database container
+  community.docker.docker_compose_v2:
+    project_src: /redis_db
+    state: present
+    wait: true
+  register: output
+
+- name: Verify that database is up
+  ansible.builtin.assert:
+    that: database_container.State == 'running'
+  vars:
+    database_container: "{{ output.containers | selectattr('Service', 'equalto', 'database') | first }}"
