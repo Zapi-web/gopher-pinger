@@ -15,3 +15,7 @@ jobs:
     docker-registry-push:
         uses: ./.github/workflows/docker.yml
         needs: ["go-tests", "tf-linting"]
+        secrets: inherit
+        permissions:
+            contents: read
+            packages: write
