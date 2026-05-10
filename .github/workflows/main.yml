@@ -11,3 +11,7 @@ jobs:
         uses: ./.github/workflows/go.yml
     tf-linting:
         uses: ./.github/workflows/terraform.yml
+    
+    docker-registry-push:
+        uses: ./.github/workflows/docker.yml
+        needs: ["go-tests", "tf-linting"]
