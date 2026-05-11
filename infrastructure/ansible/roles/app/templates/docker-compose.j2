@@ -12,7 +12,7 @@ services:
             - go
 
     go:
-        build: .
+        image: ghcr.io/zapi-web/gopher-pinger:latest
         expose:
             - {{ app_port | default(80) }}
         environment:

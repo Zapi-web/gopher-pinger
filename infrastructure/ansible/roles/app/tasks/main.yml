@@ -1,42 +1,27 @@
-- name: Tear down exiting service
-  community.docker.docker_compose_v2:
-    project_src: /app/gopher-pinger
-    state: absent
-
-- name: Get an app from repo
-  ansible.builtin.git:
-    repo: 'https://github.com/Zapi-web/gopher-pinger'
-    dest: /app/gopher-pinger
-    version: main
-    force: true
-
-- name: Ensure nginx config dir is exists
+- name: Ensure directories is exist
   ansible.builtin.file:
-    path: /app/gopher-pinger/nginx
+    path: /app/gopher-pinger/{{ item }}
     state: directory
     mode: '0755'
+  loop:
+    - ""
+    - "nginx"
 
-- name: Create a nginx config file
+- name: Create configs
   ansible.builtin.template:
-    src: templates/conf.d.j2
-    dest: /app/gopher-pinger/nginx/default.conf
+    src: "templates/{{ item.src }}"
+    dest: "/app/gopher-pinger/{{ item.dest }}"
     mode: '0644'
-
-- name: Create a promtail config file
-  ansible.builtin.template:
-    src: templates/promtail-config.j2
-    dest: /app/gopher-pinger/promtail-config.yaml
-    mode: '0644'
-
-- name: Make a docker-compose file
-  ansible.builtin.template:
-    src: templates/docker-compose.j2
-    dest: /app/gopher-pinger/docker-compose.yml
-    mode: '0644'
+  loop:
+    - { src: 'conf.d.j2', dest: 'nginx/default.conf'}
+    - { src: 'promtail-config.j2', dest: 'promtail-config.yaml'}
+    - { src: 'docker-compose.j2', dest: 'docker-compose.yml'}
 
 - name: Start app
   community.docker.docker_compose_v2:
     project_src: /app/gopher-pinger
+    pull: always
+    state: present
   register: output
 
 - name: Verify that nginx and up services are running
