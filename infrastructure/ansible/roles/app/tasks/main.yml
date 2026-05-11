@@ -22,6 +22,12 @@
     dest: /app/gopher-pinger/nginx/default.conf
     mode: '0644'
 
+- name: Create a promtail config file
+  ansible.builtin.template:
+    src: templates/promtail-config.j2
+    dest: /app/gopher-pinger/promtail-config.yaml
+    mode: '0644'
+
 - name: Make a docker-compose file
   ansible.builtin.template:
     src: templates/docker-compose.j2
@@ -30,7 +36,7 @@
 
 - name: Start app
   community.docker.docker_compose_v2:
-    project_src: gopher-pinger
+    project_src: /app/gopher-pinger
   register: output
 
 - name: Verify that nginx and up services are running

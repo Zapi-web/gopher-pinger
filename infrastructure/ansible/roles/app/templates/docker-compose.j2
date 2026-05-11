@@ -4,27 +4,54 @@ services:
         restart: always
         ports:
             - "80:80"
-            - "443:443"
         volumes:
             - ./nginx:/etc/nginx/conf.d/
         networks:
             - frontend
         depends_on:
             - go
+
     go:
         build: .
         expose:
             - {{ app_port | default(80) }}
         environment:
-            - REDIS_ADDR={{ db_public_ip }}:{{ app_redis_port | default(6379) }}
+            - REDIS_ADDR="{{ db_public_ip }}:{{ app_redis_port | default(6379) }}"
             - PORT="{{ app_port | default(80) }}"
             - LOG_LEVEL="{{ app_log_level | default('info') }}"
         deploy:
             mode: replicated
-            replicas: "{{ app_replicas_count | default(1) }}"
+            replicas: {{ app_replicas_count | default(1) }}
         networks:
             - frontend
 
+    node_exporter:
+        image: quay.io/prometheus/node-exporter:latest
+        container_name: node_exporter
+        volumes:
+            - /:/host:ro,rslave
+        expose:
+            - 9100
+        command:
+            - '--path.rootfs=/host'
+        network_mode: host
+        pid: host
+        restart: unless-stopped
+
+    promtail:
+        image: grafana/promtail:latest
+        container_name: promtail
+        expose:
+            - 9080
+        volumes:
+            - /var/lib/docker/containers:/var/lib/docker/containers:ro
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./promtail-config.yaml:/etc/promtail/config.yaml
+        command: --config.file=/etc/promtail/config.yaml
+        privileged: true
+        networks:
+            - frontend
+    
 networks:
     frontend:
         driver: bridge
