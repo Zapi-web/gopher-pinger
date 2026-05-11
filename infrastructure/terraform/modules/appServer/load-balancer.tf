@@ -42,13 +42,9 @@ resource "aws_lb_listener" "lb-listener" {
 }
 
 resource "aws_lb_target_group_attachment" "lb_attachment" {
-  for_each = instance_ids
+  for_each = aws_instance.app-linux-server
 
   target_group_arn = aws_lb_target_group.load_balacer_trg.arn
   target_id        = each.value.id
   port             = 80
-}
-
-locals {
-  instance_ids = keys(aws_instance.app-linux-server)
 }

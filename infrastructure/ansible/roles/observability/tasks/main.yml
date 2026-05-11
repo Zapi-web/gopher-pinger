@@ -1,0 +1,36 @@
+- name: Check is directories exist
+  ansible.builtin.file:
+    path: /opt/observability/{{ item }}
+    state: directory
+    mode: '0755'
+  loop:
+    - ""
+    - "grafana"
+
+- name: Create configs
+  ansible.builtin.template:
+    src: templates/{{ item.src }}
+    dest: /opt/observability/{{ item.dest }}
+    mode: '0644'
+  loop:
+    - { src: datasources.j2, dest: grafana/datasources.yml}
+    - { src: prometheus.j2, dest: prometheus.yml}
+    - { src: 'docker-compose.j2', dest: docker-compose.yml }
+
+- name: Start a monitoring containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/observability
+    state: present
+    wait: true
+  register: output
+
+- name: Verify that monitoring is up
+  ansible.builtin.assert:
+    that:
+      - prometheus_container.State == 'running'
+      - grafana_container.State == 'running'
+      - loki_container.State == 'running'
+  vars:
+    prometheus_container: "{{ output.containers | selectattr('Service', 'equalto', 'prometheus') | first }}"
+    grafana_container: "{{ output.containers | selectattr('Service', 'equalto', 'grafana') | first }}"
+    loki_container: "{{ output.containers | selectattr('Service', 'equalto', 'loki') | first }}"

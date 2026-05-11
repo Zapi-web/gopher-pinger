@@ -28,4 +28,3 @@ resource "aws_security_group_rule" "allow_loki" {
   source_security_group_id = aws_security_group.app-server-sg.id
   description              = "Loki"
 }
-

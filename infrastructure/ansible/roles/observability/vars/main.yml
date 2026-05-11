@@ -1,0 +1,3 @@
+observability_timezone: Europe/Vienna
+observability_grafana_user: admin
+observability_grafana_password: admin

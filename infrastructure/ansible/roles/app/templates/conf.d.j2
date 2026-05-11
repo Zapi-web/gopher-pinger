@@ -16,6 +16,18 @@ server {
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     }
 
+    location /metrics {
+    {% for host in groups['role_observability'] %}
+        allow {{ host }};
+    {% endfor %}
+        deny all;
+
+        proxy_pass http://goCluster/metrics;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    }
+
     location /health {
         return 200 'OK';
     }
