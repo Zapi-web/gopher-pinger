@@ -3,11 +3,22 @@ services:
         image: redis:8.6-alpine
         healthcheck:
             test: ["CMD", "redis-cli", "ping"]
-            interval: "{{ database_ping_interval + s | default(5) }}s"
-            timeout: "{{ database_ping_timeout + s | default(3) }}s"
+            interval: "{{ database_ping_interval | default(5) }}s"
+            timeout: "{{ database_ping_timeout | default(3) }}s"
             retries: {{ database_ping_retries | default(5) }}
         volumes:
             - redis_data:/data
+        ports:
+            - "6379:{{ database_port | default(6379) }}"
+    node_exporter:
+        image: quay.io/prometheus/node-exporter:latest
+        container_name: node_exporter
+        volumes:
+            - /:/host:ro,rslave
+        network_mode: host
+        command:
+            - '--path.rootfs=/host'
+        restart: unless-stopped
 
 volumes:
     redis_data:
