@@ -1,0 +1,27 @@
+---
+- name: Prepare servers
+  hosts: role_app, role_database, role_observability
+  become: true
+  roles:
+    - common
+    - docker
+
+- name: Database setup
+  hosts: role_database
+  become: true
+  roles:
+    - database
+
+- name: Observability setup
+  hosts: role_observability
+  become: true
+  roles:
+    - observability
+
+- name: Application setup
+  hosts: role_app
+  become: true
+  roles:
+    - app
+  vars:
+    db_public_ip: "{{ groups['role_database'][0] }}"
