@@ -22,6 +22,8 @@ import (
 	"github.com/Zapi-web/gopher-pinger/internal/storage/local"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -47,7 +49,8 @@ func main() {
 	defer state.Close()
 
 	processes := local.InitMap()
-	promMetrics := metrics.New()
+	reg := prometheus.NewRegistry()
+	promMetrics := metrics.New(reg)
 
 	metricsInterface := service.NewMetricsService(*promMetrics)
 	controlInterface := service.NewService(appCtx, processes, state, metricsInterface)
@@ -70,6 +73,7 @@ func main() {
 	r.Get("/getPinger", get.New(controlInterface))
 	r.Put("/changeInterval", put.New(controlInterface))
 	r.Delete("/deletePinger", handDelete.New(controlInterface))
+	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	slog.Info("starting server", "addr", cfg.Port)
 

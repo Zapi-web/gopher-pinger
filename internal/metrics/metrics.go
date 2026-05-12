@@ -13,31 +13,31 @@ type Metrics struct {
 	ActiveWorkers   prometheus.Gauge
 }
 
-func New() *Metrics {
+func New(reg prometheus.Registerer) *Metrics {
 	return &Metrics{
-		PingsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+		PingsTotal: promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
 			Name: "pinger_pings_total",
 			Help: "Total number of pings",
 		}, []string{"url", "status"}),
 
-		PingDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+		PingDuration: promauto.With(reg).NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "pinger_ping_duration_seconds",
 			Help:    "Time taken to ping a URL",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"url"}),
 
-		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+		RequestsTotal: promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
 			Name: "pinger_total_requests",
 			Help: "Total number of requests",
 		}, []string{"method", "status"}),
 
-		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+		RequestDuration: promauto.With(reg).NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "pinger_request_duration_seconds",
 			Help:    "Time taken to ping a URL",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"method", "status"}),
 
-		ActiveWorkers: promauto.NewGauge(prometheus.GaugeOpts{
+		ActiveWorkers: promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 			Name: "pinger_active_workers_count",
 			Help: "Number of currently active goroutines",
 		}),
