@@ -35,9 +35,9 @@
   ansible.builtin.deb822_repository:
     name: docker
     types: deb
-    uris: "{{ docker_repo_url }}/{{ ansible_facts.distribution }}"
+    uris: "{{ docker_repo_url }}/{{ ansible_facts.distribution | lower }}"
     suites: "{{ ansible_facts.distribution_release }}"
     components: stable
-    signed_by: "{{ docker_repo_url }}/{{ ansible_facts.distribution }}/gpg"
+    signed_by: "{{ docker_repo_url }}/{{ ansible_facts.distribution | lower }}/gpg"
     state: present
-  notify: apt update
+  notify: Apt update
