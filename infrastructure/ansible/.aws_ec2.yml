@@ -7,4 +7,7 @@ keyed_groups:
     prefix: role
 
 hostnames:
-  - public-ip-address
+  - ip-address
+
+compose:
+  ansible_host: public_ip_address
