@@ -3,3 +3,6 @@ common_base_packages:
   - sudo
   - nano
   - git
+  - htop
+  - ca-certificates
+  - apt-transport-https

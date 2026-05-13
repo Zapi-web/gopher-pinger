@@ -16,6 +16,7 @@
     - { src: datasources.j2, dest: grafana/datasources.yml}
     - { src: prometheus.j2, dest: prometheus.yml}
     - { src: 'docker-compose.j2', dest: docker-compose.yml }
+    - { src: 'loki-config.j2', dest: loki-config.yml }
 
 - name: Start a monitoring containers
   community.docker.docker_compose_v2:

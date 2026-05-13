@@ -15,6 +15,10 @@ services:
             - "./loki-config.yml:/etc/loki/local-config.yaml"
         networks:
             - monitoring
+        deploy:
+            limits:
+                cpus: '0.20'
+                memory: 150M
         restart: unless-stopped
 
     grafana:
@@ -33,6 +37,10 @@ services:
         depends_on:
             - loki
             - prometheus
+        deploy:
+            limits:
+                cpus: '0.15'
+                memory: 150M
         restart: unless-stopped
 
     prometheus:
@@ -46,6 +54,10 @@ services:
             - "--storage.tsdb.path=/prometheus"
         networks:
             - monitoring
+        deploy:
+            limits:
+                memory: 300M
+                cpus: '0.25'
         restart: unless-stopped
 
 volumes:
