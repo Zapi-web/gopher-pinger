@@ -41,3 +41,6 @@
     signed_by: "{{ docker_repo_url }}/{{ ansible_facts.distribution | lower }}/gpg"
     state: present
   notify: Apt update
+
+- name: Ensure handlers are notified to update the apt cache
+  ansible.builtin.meta: flush_handlers

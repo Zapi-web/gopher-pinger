@@ -1,6 +1,7 @@
 services:
     nginx:
         image: nginx:alpine
+        container_name: nginx
         restart: always
         ports:
             - "80:80"
@@ -16,8 +17,8 @@ services:
         expose:
             - {{ app_port | default(80) }}
         environment:
-            - REDIS_ADDR="{{ db_public_ip }}:{{ app_redis_port | default(6379) }}"
-            - PORT="{{ app_port | default(80) }}"
+            - REDIS_ADDR={{ db_public_ip }}:{{ app_redis_port | default(6379) }}
+            - PORT={{ app_port | default(80) }}
             - LOG_LEVEL="{{ app_log_level | default('info') }}"
         deploy:
             mode: replicated
