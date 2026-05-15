@@ -24,4 +24,4 @@
   roles:
     - app
   vars:
-    db_public_ip: "{{ hostvars[groups['role_database'][0]]['private_ip_address'] }}"
+    db_private_ip: "{{ hostvars[groups['role_database'][0]]['private_ip_address'] }}"

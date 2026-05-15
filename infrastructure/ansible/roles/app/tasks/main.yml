@@ -1,6 +1,6 @@
 - name: Ensure directories is exist
   ansible.builtin.file:
-    path: /app/gopher-pinger/{{ item }}
+    path: /opt/gopher-pinger/{{ item }}
     state: directory
     mode: '0755'
   loop:
@@ -10,16 +10,20 @@
 - name: Create configs
   ansible.builtin.template:
     src: "templates/{{ item.src }}"
-    dest: "/app/gopher-pinger/{{ item.dest }}"
+    dest: "/opt/gopher-pinger/{{ item.dest }}"
     mode: '0644'
+  notify: Restart Containers
   loop:
     - { src: 'conf.d.j2', dest: 'nginx/default.conf'}
     - { src: 'promtail-config.j2', dest: 'promtail-config.yaml'}
     - { src: 'docker-compose.j2', dest: 'docker-compose.yml'}
 
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
 - name: Start app
   community.docker.docker_compose_v2:
-    project_src: /app/gopher-pinger
+    project_src: /opt/gopher-pinger
     pull: always
     state: present
   register: output

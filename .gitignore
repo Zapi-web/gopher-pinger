@@ -4,6 +4,9 @@
 *.tfstate
 *.tfstate.*
 
+*.tfvars
+*.tfvars.*
+
 tfplan
 *tfplan*
 

@@ -1,0 +1,4 @@
+- name: Restart app containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/gopher-pinger/
+    state: restarted

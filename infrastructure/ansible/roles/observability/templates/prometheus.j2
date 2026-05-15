@@ -7,19 +7,19 @@ scrape_configs:
       static_configs:
         - targets:
         {% for host in groups['role_app'] %}
-          - "{{ host }}:80"
+          - "{{ hostvars[host]['private_ip_address'] }}:80"
         {% endfor %}
 
     - job_name: "node_exporter_apps"
       static_configs:
         - targets:
         {% for host in groups['role_app'] %}
-          - "{{ host }}:9100"
+          - "{{ hostvars[host]['private_ip_address'] }}:9100"
         {% endfor %}
     
     - job_name: "database"
       static_configs:
         - targets:
       {% for host in groups['role_database'] %}
-          - "{{ host }}:9100"
+          - "{{ hostvars[host]['private_ip_address'] }}:9100"
       {% endfor %}
