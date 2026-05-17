@@ -33,7 +33,8 @@ services:
             - GF_SECURITY_ADMIN_USER={{ observability_grafana_user }}
             - GF_SECURITY_ADMIN_PASSWORD={{ observability_grafana_password }}
         volumes:
-            - "./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml"
+            - "./grafana/provisioning:/etc/grafana/provisioning:ro"
+            - "./grafana/dashboards:/var/lib/grafana/dashboards:ro"
             - "grafanadata:/var/lib/grafana"
         depends_on:
             - loki
