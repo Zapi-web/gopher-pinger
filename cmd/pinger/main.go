@@ -74,6 +74,10 @@ func main() {
 	r.Put("/changeInterval", put.New(controlInterface))
 	r.Delete("/deletePinger", handDelete.New(controlInterface))
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 
 	slog.Info("starting server", "addr", cfg.Port)
 
