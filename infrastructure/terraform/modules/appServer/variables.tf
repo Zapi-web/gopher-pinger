@@ -15,6 +15,12 @@ variable "environment" {
   }
 }
 
+variable "app_port" {
+  type        = number
+  default     = 8080
+  description = "app port"
+}
+
 variable "linux_instance_type" {
   type        = string
   description = "Instance type for app-server"

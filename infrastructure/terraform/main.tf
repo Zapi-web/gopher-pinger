@@ -51,6 +51,7 @@ module "app_server" {
   app_name               = var.app_name
   environment            = var.environment
   vpc_id                 = module.vpc.vpc_id
+  app_port               = var.app_port
   lb-sg-id               = module.security_groups.lb_sg_id
   app-sg-id              = module.security_groups.app_sg_id
   subnet_ids             = module.vpc.app_public_subnet_ids

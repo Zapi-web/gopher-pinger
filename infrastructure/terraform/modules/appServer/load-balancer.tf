@@ -13,7 +13,7 @@ resource "aws_lb" "load_balancer" {
 
 resource "aws_lb_target_group" "load_balacer_trg" {
   name     = "${var.app_name}-${var.environment}-lb-trg"
-  port     = 80
+  port     = var.app_port
   protocol = "HTTP"
   vpc_id   = var.vpc_id
 
@@ -46,5 +46,5 @@ resource "aws_lb_target_group_attachment" "lb_attachment" {
 
   target_group_arn = aws_lb_target_group.load_balacer_trg.arn
   target_id        = each.value.id
-  port             = 80
+  port             = var.app_port
 }
