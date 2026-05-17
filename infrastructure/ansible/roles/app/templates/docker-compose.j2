@@ -1,28 +1,12 @@
 services:
-    nginx:
-        image: nginx:alpine
-        container_name: nginx
-        restart: always
-        ports:
-            - "80:80"
-        volumes:
-            - ./nginx:/etc/nginx/conf.d/
-        networks:
-            - frontend
-        depends_on:
-            - go
-
     go:
         image: ghcr.io/zapi-web/gopher-pinger:latest
-        expose:
-            - {{ app_port | default(80) }}
+        ports:
+            - {{ app_port | default(8080) }}:8080
         environment:
             - REDIS_ADDR={{ db_private_ip }}:{{ app_redis_port | default(6379) }}
-            - PORT={{ app_port | default(80) }}
+            - PORT={{ app_port | default(8080) }}
             - LOG_LEVEL="{{ app_log_level | default('info') }}"
-        deploy:
-            mode: replicated
-            replicas: {{ app_replicas_count | default(1) }}
         networks:
             - frontend
 

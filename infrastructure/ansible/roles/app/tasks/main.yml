@@ -1,20 +1,16 @@
 - name: Ensure directories is exist
   ansible.builtin.file:
-    path: /opt/gopher-pinger/{{ item }}
+    path: /opt/gopher-pinger/
     state: directory
     mode: '0755'
-  loop:
-    - ""
-    - "nginx"
 
 - name: Create configs
   ansible.builtin.template:
     src: "templates/{{ item.src }}"
     dest: "/opt/gopher-pinger/{{ item.dest }}"
     mode: '0644'
-  notify: Restart Containers
+  notify: Restart app containers
   loop:
-    - { src: 'conf.d.j2', dest: 'nginx/default.conf'}
     - { src: 'promtail-config.j2', dest: 'promtail-config.yaml'}
     - { src: 'docker-compose.j2', dest: 'docker-compose.yml'}
 
@@ -28,11 +24,9 @@
     state: present
   register: output
 
-- name: Verify that nginx and up services are running
+- name: Verify that app services are running
   ansible.builtin.assert:
     that:
-      - nginx_container.State == 'running'
       - go_container.State == 'running'
   vars:
-    nginx_container: "{{ output.containers | selectattr('Service', 'equalto', 'nginx') | first }}"
     go_container: "{{ output.containers | selectattr('Service', 'equalto', 'go') | first }}"
