@@ -14,6 +14,13 @@ type CheckResult struct {
 	Duration time.Duration
 }
 
+type GoroutineData struct {
+	ID       string
+	URL      string
+	Interval time.Duration
+	Results  chan<- CheckResult
+}
+
 var sharedClient = &http.Client{
 	Timeout: 10 * time.Second,
 }
@@ -24,24 +31,23 @@ type Locker interface {
 	Unlock(ctx context.Context, key string) error
 }
 
-func Start(ctx context.Context, locker Locker, id string, url string, interval time.Duration, results chan<- CheckResult) context.CancelFunc {
+func Start(ctx context.Context, locker Locker, req *GoroutineData) (context.CancelFunc, *time.Ticker) {
 	ctx, cancel := context.WithCancel(ctx)
-	ticker := time.NewTicker(interval)
+	ticker := time.NewTicker(req.Interval)
 
 	go func() {
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("pinger stopped", "ulid", id, "url", url)
+				slog.Info("pinger stopped", "ulid", req.ID, "url", req.URL)
 				return
 			case <-ticker.C:
-				start := time.Now()
 
-				ok, err := locker.Lock(ctx, id, interval-(time.Microsecond*100))
+				ok, err := locker.Lock(ctx, req.ID, req.Interval-(time.Microsecond*100))
 
 				if err != nil {
-					slog.Error("failed to lock", "ulid", id, "err", err)
+					slog.Error("failed to lock", "ulid", req.ID, "err", err)
 					continue
 				}
 
@@ -49,27 +55,28 @@ func Start(ctx context.Context, locker Locker, id string, url string, interval t
 					continue
 				}
 
-				status, err := ping(ctx, url)
+				start := time.Now()
+				status, err := ping(ctx, req.URL)
 				dur := time.Since(start)
 
 				if err != nil {
-					slog.Warn("ping error", "url", url, "err", err)
+					slog.Warn("ping error", "url", req.URL, "err", err)
 					status = -1
 				}
 
 				select {
-				case results <- CheckResult{ID: id, URL: url, Status: status, Duration: dur}:
-					slog.Info("url pinged", "ulid", id, "url", url, "code", status)
+				case req.Results <- CheckResult{ID: req.ID, URL: req.URL, Status: status, Duration: dur}:
+					slog.Info("url pinged", "ulid", req.ID, "url", req.URL, "code", status)
 				default:
-					slog.Warn("results channel is full", "ulid", id)
+					slog.Warn("results channel is full", "ulid", req.ID)
 				}
 			}
 		}
 	}()
 
-	slog.Info("pinger started", "ulid", id, "url", url, "interval", interval)
+	slog.Info("pinger started", "ulid", req.ID, "url", req.URL, "interval", req.Interval)
 
-	return cancel
+	return cancel, ticker
 }
 
 func ping(ctx context.Context, url string) (int, error) {

@@ -3,8 +3,7 @@
 package mocks
 
 import (
-	context "context"
-
+	domain "github.com/Zapi-web/gopher-pinger/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 
 	ulid "github.com/oklog/ulid/v2"
@@ -34,23 +33,23 @@ func (_m *ProcessStore) Delete(key ulid.ULID) error {
 }
 
 // Get provides a mock function with given fields: key
-func (_m *ProcessStore) Get(key ulid.ULID) (context.CancelFunc, error) {
+func (_m *ProcessStore) Get(key ulid.ULID) (*domain.ActiveProcess, error) {
 	ret := _m.Called(key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
 	}
 
-	var r0 context.CancelFunc
+	var r0 *domain.ActiveProcess
 	var r1 error
-	if rf, ok := ret.Get(0).(func(ulid.ULID) (context.CancelFunc, error)); ok {
+	if rf, ok := ret.Get(0).(func(ulid.ULID) (*domain.ActiveProcess, error)); ok {
 		return rf(key)
 	}
-	if rf, ok := ret.Get(0).(func(ulid.ULID) context.CancelFunc); ok {
+	if rf, ok := ret.Get(0).(func(ulid.ULID) *domain.ActiveProcess); ok {
 		r0 = rf(key)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(context.CancelFunc)
+			r0 = ret.Get(0).(*domain.ActiveProcess)
 		}
 	}
 
@@ -64,7 +63,7 @@ func (_m *ProcessStore) Get(key ulid.ULID) (context.CancelFunc, error) {
 }
 
 // Set provides a mock function with given fields: key, value
-func (_m *ProcessStore) Set(key ulid.ULID, value context.CancelFunc) error {
+func (_m *ProcessStore) Set(key ulid.ULID, value *domain.ActiveProcess) error {
 	ret := _m.Called(key, value)
 
 	if len(ret) == 0 {
@@ -72,7 +71,7 @@ func (_m *ProcessStore) Set(key ulid.ULID, value context.CancelFunc) error {
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(ulid.ULID, context.CancelFunc) error); ok {
+	if rf, ok := ret.Get(0).(func(ulid.ULID, *domain.ActiveProcess) error); ok {
 		r0 = rf(key, value)
 	} else {
 		r0 = ret.Error(0)

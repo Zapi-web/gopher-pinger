@@ -26,8 +26,8 @@ type PingerService interface {
 
 //go:generate go run github.com/vektra/mockery/v2@latest --name=ProcessStore
 type ProcessStore interface {
-	Set(key ulid.ULID, value context.CancelFunc) error
-	Get(key ulid.ULID) (context.CancelFunc, error)
+	Set(key ulid.ULID, value *domain.ActiveProcess) error
+	Get(key ulid.ULID) (*domain.ActiveProcess, error)
 	Delete(key ulid.ULID) error
 }
 
@@ -76,12 +76,20 @@ func (s *pingerService) Init() error {
 			continue
 		}
 
-		cancel := pinger.Start(s.appCtx, s.state, target.ID, target.URL, time.Duration(target.Interval)*time.Second, s.results)
+		gorData := pinger.GoroutineData{
+			ID:       target.ID,
+			URL:      target.URL,
+			Interval: time.Duration(target.Interval) * time.Second,
+			Results:  s.results,
+		}
 
-		err = s.processes.Set(ulid, cancel)
+		cancel, ticker := pinger.Start(s.appCtx, s.state, &gorData)
+
+		err = s.processes.Set(ulid, &domain.ActiveProcess{Cancel: cancel, Ticker: ticker})
 
 		if err != nil {
 			cancel()
+			ticker.Stop()
 			slog.Error("failed to set key in map", "ulid", ulid, "err", err)
 			continue
 		}
@@ -107,11 +115,19 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, i
 		return ulid.ULID{}, err
 	}
 
-	cancel := pinger.Start(s.appCtx, s.state, id.String(), reqUrl, time.Duration(interval)*time.Second, s.results)
-	err = s.processes.Set(id, cancel)
+	gorData := pinger.GoroutineData{
+		ID:       id.String(),
+		URL:      reqUrl,
+		Interval: time.Duration(interval) * time.Second,
+		Results:  s.results,
+	}
+
+	cancel, ticker := pinger.Start(s.appCtx, s.state, &gorData)
+	err = s.processes.Set(id, &domain.ActiveProcess{Cancel: cancel, Ticker: ticker})
 
 	if err != nil {
 		cancel()
+		ticker.Stop()
 		return ulid.ULID{}, fmt.Errorf("failed setting data in map: %w", err)
 	}
 
@@ -123,6 +139,7 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, i
 
 	if err != nil {
 		cancel()
+		ticker.Stop()
 		mapErr := s.processes.Delete(id)
 
 		if !errors.Is(mapErr, domain.ErrNotFound) {
@@ -178,13 +195,14 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to delete from database: %w", err)
 	}
 
-	cancel, err := s.processes.Get(ulid)
+	proc, err := s.processes.Get(ulid)
 	if err != nil {
 		slog.Warn("not found process after deleting from state", "ULID", id)
 		return nil
 	}
 
-	cancel()
+	proc.Cancel()
+	proc.Ticker.Stop()
 	err = s.processes.Delete(ulid)
 
 	if err != nil {
@@ -210,37 +228,36 @@ func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interva
 		return domain.ErrInvalidId
 	}
 
-	data, err := s.GetProcess(reqCtx, id)
+	tar, err := s.state.Get(reqCtx, id)
+
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrNotFound
 		}
 
-		return fmt.Errorf("failed getting old data: %w", err)
+		return fmt.Errorf("failed to get old data in database %w", err)
 	}
 
-	err = s.DeleteProcess(reqCtx, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete old process: %w", err)
-	}
+	tar.Interval = interval
 
-	cancel := pinger.Start(s.appCtx, s.state, id, data.URL, time.Duration(interval)*time.Second, s.results)
-	err = s.processes.Set(ulid, cancel)
+	proc, err := s.processes.Get(ulid)
 
 	if err != nil {
-		cancel()
-		return fmt.Errorf("failed to set new process in map: %w", err)
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrNotFound
+		}
+
+		return fmt.Errorf("failed to get old process %w", err)
 	}
 
-	data.Interval = interval
-	err = s.state.Set(reqCtx, id, data)
+	err = s.state.Set(reqCtx, id, tar)
 
 	if err != nil {
-		cancel()
-		return fmt.Errorf("failed set a data in database: %w", err)
+		return fmt.Errorf("failed to set new interval in database %w", err)
 	}
 
-	s.metrics.IncWorker()
+	proc.Ticker.Reset(time.Duration(interval) * time.Second)
+
 	return nil
 }
 

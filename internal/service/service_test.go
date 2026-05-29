@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/Zapi-web/gopher-pinger/internal/domain"
 	"github.com/Zapi-web/gopher-pinger/internal/service"
@@ -100,7 +101,6 @@ func TestPingerService_UpdateProcess(t *testing.T) {
 	type serviceMocks struct {
 		state     *mocks.StateStore
 		processes *mocks.ProcessStore
-		metrics   *mocks.PingerMetrics
 	}
 
 	tests := []struct {
@@ -118,18 +118,19 @@ func TestPingerService_UpdateProcess(t *testing.T) {
 			mockBehavior: func(m serviceMocks) {
 				m.state.On("Get", mock.Anything, testId).Return(oldTar, nil)
 
-				m.state.On("Delete", mock.Anything, testId).Return(nil)
-				m.processes.On("Get", parsedULID).Return(context.CancelFunc(func() {}), nil)
-				m.processes.On("Delete", parsedULID).Return(nil)
-				m.metrics.On("DecWorker").Return()
+				tck := time.NewTicker(time.Hour)
+				t.Cleanup(tck.Stop)
+
+				m.processes.On("Get", parsedULID).Return(&domain.ActiveProcess{
+					Cancel: func() {},
+					Ticker: tck,
+				}, nil)
 
 				m.state.On("Lock", mock.Anything, testId, mock.Anything).Return(true, nil).Maybe()
 				m.state.On("Unlock", mock.Anything, testId).Return(nil).Maybe()
 				m.state.On("UpdateStatus", mock.Anything, testId, mock.Anything, mock.Anything).Return(nil).Maybe()
 
-				m.processes.On("Set", parsedULID, mock.AnythingOfType("context.CancelFunc")).Return(nil)
 				m.state.On("Set", mock.Anything, testId, newTar).Return(nil)
-				m.metrics.On("IncWorker").Return()
 			},
 		},
 		{
@@ -168,12 +169,11 @@ func TestPingerService_UpdateProcess(t *testing.T) {
 			m := serviceMocks{
 				state:     new(mocks.StateStore),
 				processes: new(mocks.ProcessStore),
-				metrics:   new(mocks.PingerMetrics),
 			}
 
 			tt.mockBehavior(m)
 
-			srv := service.NewService(context.Background(), m.processes, m.state, m.metrics)
+			srv := service.NewService(context.Background(), m.processes, m.state, nil)
 
 			err := srv.UpdateProcess(context.Background(), tt.id, tt.interval)
 
@@ -185,7 +185,6 @@ func TestPingerService_UpdateProcess(t *testing.T) {
 
 			m.state.AssertExpectations(t)
 			m.processes.AssertExpectations(t)
-			m.metrics.AssertExpectations(t)
 		})
 	}
 }

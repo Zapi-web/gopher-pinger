@@ -65,7 +65,14 @@ func TestPinger_Logic(t *testing.T) {
 				targetURL = tt.overrideURL
 			}
 
-			cancel := pinger.Start(context.Background(), mockLocker, testId, targetURL, tt.interval, mockChan)
+			mockData := pinger.GoroutineData{
+				ID:       testId,
+				URL:      targetURL,
+				Interval: tt.interval,
+				Results:  mockChan,
+			}
+
+			cancel, _ := pinger.Start(context.Background(), mockLocker, &mockData)
 
 			select {
 			case res := <-mockChan:
