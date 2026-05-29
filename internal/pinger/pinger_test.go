@@ -72,7 +72,7 @@ func TestPinger_Logic(t *testing.T) {
 				Results:  mockChan,
 			}
 
-			cancel, _ := pinger.Start(context.Background(), mockLocker, &mockData)
+			cancel := pinger.Start(context.Background(), mockLocker, &mockData)
 
 			select {
 			case res := <-mockChan:

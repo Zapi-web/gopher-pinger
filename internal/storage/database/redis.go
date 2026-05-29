@@ -156,10 +156,6 @@ func (r *RedisDb) Lock(ctx context.Context, key string, ttl time.Duration) (bool
 	return true, nil
 }
 
-func (r *RedisDb) Unlock(ctx context.Context, key string) error {
-	return r.rdb.Del(ctx, "lock:"+key).Err()
-}
-
 func (r *RedisDb) GetAll(ctx context.Context) ([]domain.Target, error) {
 	var cursor uint64
 	var totalTargets []domain.Target

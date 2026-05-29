@@ -6,6 +6,6 @@ import (
 )
 
 type ActiveProcess struct {
-	Cancel context.CancelFunc
-	Ticker *time.Ticker
+	Cancel       context.CancelFunc
+	IntervalChan chan time.Duration
 }

@@ -22,7 +22,7 @@ func InitMap() *MapStorage {
 }
 
 func (m *MapStorage) Set(key ulid.ULID, value *domain.ActiveProcess) error {
-	if key == (ulid.ULID{}) || value == nil || value.Cancel == nil || value.Ticker == nil {
+	if key == (ulid.ULID{}) || value == nil || value.Cancel == nil || value.IntervalChan == nil {
 		return domain.ErrInputisEmpty
 	}
 

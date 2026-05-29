@@ -15,10 +15,11 @@ type CheckResult struct {
 }
 
 type GoroutineData struct {
-	ID       string
-	URL      string
-	Interval time.Duration
-	Results  chan<- CheckResult
+	ID             string
+	URL            string
+	Interval       time.Duration
+	Results        chan<- CheckResult
+	UpdateInterval chan time.Duration
 }
 
 var sharedClient = &http.Client{
@@ -28,12 +29,13 @@ var sharedClient = &http.Client{
 //go:generate go run github.com/vektra/mockery/v2@latest --name=Locker
 type Locker interface {
 	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
-	Unlock(ctx context.Context, key string) error
 }
 
-func Start(ctx context.Context, locker Locker, req *GoroutineData) (context.CancelFunc, *time.Ticker) {
+func Start(ctx context.Context, locker Locker, req *GoroutineData) context.CancelFunc {
 	ctx, cancel := context.WithCancel(ctx)
 	ticker := time.NewTicker(req.Interval)
+
+	currentInterval := req.Interval
 
 	go func() {
 		defer ticker.Stop()
@@ -42,9 +44,12 @@ func Start(ctx context.Context, locker Locker, req *GoroutineData) (context.Canc
 			case <-ctx.Done():
 				slog.Info("pinger stopped", "ulid", req.ID, "url", req.URL)
 				return
+			case newInterval := <-req.UpdateInterval:
+				ticker.Reset(newInterval)
+				currentInterval = newInterval
+				slog.Info("interval updated", "ulid", req.ID, "new_interval", currentInterval)
 			case <-ticker.C:
-
-				ok, err := locker.Lock(ctx, req.ID, req.Interval-(time.Microsecond*100))
+				ok, err := locker.Lock(ctx, req.ID, currentInterval)
 
 				if err != nil {
 					slog.Error("failed to lock", "ulid", req.ID, "err", err)
@@ -76,7 +81,7 @@ func Start(ctx context.Context, locker Locker, req *GoroutineData) (context.Canc
 
 	slog.Info("pinger started", "ulid", req.ID, "url", req.URL, "interval", req.Interval)
 
-	return cancel, ticker
+	return cancel
 }
 
 func ping(ctx context.Context, url string) (int, error) {

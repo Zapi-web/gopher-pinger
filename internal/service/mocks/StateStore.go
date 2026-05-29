@@ -138,24 +138,6 @@ func (_m *StateStore) Set(ctx context.Context, key string, value domain.Target) 
 	return r0
 }
 
-// Unlock provides a mock function with given fields: ctx, key
-func (_m *StateStore) Unlock(ctx context.Context, key string) error {
-	ret := _m.Called(ctx, key)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Unlock")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, key)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // UpdateStatus provides a mock function with given fields: ctx, key, code, timestamp
 func (_m *StateStore) UpdateStatus(ctx context.Context, key string, code int, timestamp string) error {
 	ret := _m.Called(ctx, key, code, timestamp)

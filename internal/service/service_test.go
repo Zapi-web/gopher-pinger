@@ -118,12 +118,9 @@ func TestPingerService_UpdateProcess(t *testing.T) {
 			mockBehavior: func(m serviceMocks) {
 				m.state.On("Get", mock.Anything, testId).Return(oldTar, nil)
 
-				tck := time.NewTicker(time.Hour)
-				t.Cleanup(tck.Stop)
-
 				m.processes.On("Get", parsedULID).Return(&domain.ActiveProcess{
-					Cancel: func() {},
-					Ticker: tck,
+					Cancel:       func() {},
+					IntervalChan: make(chan time.Duration, 1),
 				}, nil)
 
 				m.state.On("Lock", mock.Anything, testId, mock.Anything).Return(true, nil).Maybe()

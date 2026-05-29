@@ -39,7 +39,6 @@ type StateStore interface {
 	UpdateStatus(ctx context.Context, key string, code int, timestamp string) error
 	GetAll(ctx context.Context) ([]domain.Target, error)
 	Lock(ctx context.Context, key string, ttl time.Duration) (bool, error)
-	Unlock(ctx context.Context, key string) error
 }
 
 type pingerService struct {
@@ -69,28 +68,28 @@ func (s *pingerService) Init() error {
 	}
 
 	for _, target := range targets {
-		ulid, err := ulid.Parse(target.ID)
+		ParsedID, err := ulid.Parse(target.ID)
 
 		if err != nil {
-			slog.Warn("bad id in initialize", "ulid", ulid)
+			slog.Warn("bad id in initialize", "ulid", ParsedID)
 			continue
 		}
 
 		gorData := pinger.GoroutineData{
-			ID:       target.ID,
-			URL:      target.URL,
-			Interval: time.Duration(target.Interval) * time.Second,
-			Results:  s.results,
+			ID:             target.ID,
+			URL:            target.URL,
+			Interval:       time.Duration(target.Interval) * time.Second,
+			Results:        s.results,
+			UpdateInterval: make(chan time.Duration, 1),
 		}
 
-		cancel, ticker := pinger.Start(s.appCtx, s.state, &gorData)
+		cancel := pinger.Start(s.appCtx, s.state, &gorData)
 
-		err = s.processes.Set(ulid, &domain.ActiveProcess{Cancel: cancel, Ticker: ticker})
+		err = s.processes.Set(ParsedID, &domain.ActiveProcess{Cancel: cancel, IntervalChan: gorData.UpdateInterval})
 
 		if err != nil {
 			cancel()
-			ticker.Stop()
-			slog.Error("failed to set key in map", "ulid", ulid, "err", err)
+			slog.Error("failed to set key in map", "ulid", ParsedID, "err", err)
 			continue
 		}
 	}
@@ -116,18 +115,18 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, i
 	}
 
 	gorData := pinger.GoroutineData{
-		ID:       id.String(),
-		URL:      reqUrl,
-		Interval: time.Duration(interval) * time.Second,
-		Results:  s.results,
+		ID:             id.String(),
+		URL:            reqUrl,
+		Interval:       time.Duration(interval) * time.Second,
+		Results:        s.results,
+		UpdateInterval: make(chan time.Duration, 1),
 	}
 
-	cancel, ticker := pinger.Start(s.appCtx, s.state, &gorData)
-	err = s.processes.Set(id, &domain.ActiveProcess{Cancel: cancel, Ticker: ticker})
+	cancel := pinger.Start(s.appCtx, s.state, &gorData)
+	err = s.processes.Set(id, &domain.ActiveProcess{Cancel: cancel, IntervalChan: gorData.UpdateInterval})
 
 	if err != nil {
 		cancel()
-		ticker.Stop()
 		return ulid.ULID{}, fmt.Errorf("failed setting data in map: %w", err)
 	}
 
@@ -139,7 +138,6 @@ func (s *pingerService) StartMonitoring(reqCtx context.Context, reqUrl string, i
 
 	if err != nil {
 		cancel()
-		ticker.Stop()
 		mapErr := s.processes.Delete(id)
 
 		if !errors.Is(mapErr, domain.ErrNotFound) {
@@ -202,7 +200,6 @@ func (s *pingerService) DeleteProcess(ctx context.Context, id string) error {
 	}
 
 	proc.Cancel()
-	proc.Ticker.Stop()
 	err = s.processes.Delete(ulid)
 
 	if err != nil {
@@ -222,7 +219,7 @@ func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interva
 		return domain.ErrInputisEmpty
 	}
 
-	ulid, err := ulid.Parse(id)
+	ParsedID, err := ulid.Parse(id)
 
 	if err != nil {
 		return domain.ErrInvalidId
@@ -240,7 +237,7 @@ func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interva
 
 	tar.Interval = interval
 
-	proc, err := s.processes.Get(ulid)
+	proc, err := s.processes.Get(ParsedID)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -256,7 +253,7 @@ func (s *pingerService) UpdateProcess(reqCtx context.Context, id string, interva
 		return fmt.Errorf("failed to set new interval in database %w", err)
 	}
 
-	proc.Ticker.Reset(time.Duration(interval) * time.Second)
+	proc.IntervalChan <- time.Duration(interval) * time.Second
 
 	return nil
 }
