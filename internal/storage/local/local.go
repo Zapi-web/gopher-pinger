@@ -1,7 +1,6 @@
 package local
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 
@@ -11,30 +10,30 @@ import (
 
 type MapStorage struct {
 	mu     sync.RWMutex
-	mapStr map[ulid.ULID]context.CancelFunc
+	mapStr map[ulid.ULID]*domain.ActiveProcess
 }
 
 func InitMap() *MapStorage {
 	newMap := MapStorage{
-		mapStr: make(map[ulid.ULID]context.CancelFunc),
+		mapStr: make(map[ulid.ULID]*domain.ActiveProcess),
 	}
 
 	return &newMap
 }
 
-func (m *MapStorage) Set(key ulid.ULID, value context.CancelFunc) error {
-	if key == (ulid.ULID{}) || value == nil {
+func (m *MapStorage) Set(key ulid.ULID, value *domain.ActiveProcess) error {
+	if key == (ulid.ULID{}) || value == nil || value.Cancel == nil || value.Ticker == nil {
 		return domain.ErrInputisEmpty
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	cancel, ok := m.mapStr[key]
+	data, ok := m.mapStr[key]
 
 	if ok {
 		slog.Info("canceled old pinger to set new", "ulid", key)
-		cancel()
+		data.Cancel()
 	}
 
 	m.mapStr[key] = value
@@ -43,7 +42,7 @@ func (m *MapStorage) Set(key ulid.ULID, value context.CancelFunc) error {
 	return nil
 }
 
-func (m *MapStorage) Get(key ulid.ULID) (context.CancelFunc, error) {
+func (m *MapStorage) Get(key ulid.ULID) (*domain.ActiveProcess, error) {
 	if key == (ulid.ULID{}) {
 		return nil, domain.ErrInputisEmpty
 	}
