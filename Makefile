@@ -1,4 +1,4 @@
-KEY_PATH ?= ~/.ssh/serhii-aws-key.pem
+KEY_PATH ?= ~/.ssh/aws-key.pem
 TF_DIR = infrastructure/terraform
 AN_DIR = infrastructure/ansible
 

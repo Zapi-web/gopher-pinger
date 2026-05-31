@@ -33,7 +33,7 @@ admin_ip = "0.0.0.0/0" # or get it from any web-site
 ```bash
 make deploy KEY_PATH=~/.ssh/--YOUR-AWS-KEY-NAME--.pem
 ```
-3. Done!
+3. Done! (if you have problems with Ansible try to install python3-boto3 and python3-botocore)
 
 ## Endpoint and ports
 * POST /newPinger `{"url": "https://example.com", "interval": 10}` starts a new pinger with interval 10 seconds
