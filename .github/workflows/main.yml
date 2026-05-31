@@ -10,7 +10,7 @@ jobs:
     go-tests:
         uses: ./.github/workflows/go.yml
     tf-linting:
-        uses: ./.github/workflows/terraform.yml
+        uses: ./.github/workflows/tofu.yml
     
     docker-registry-push:
         uses: ./.github/workflows/docker.yml

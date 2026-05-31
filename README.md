@@ -8,7 +8,7 @@ Automated pinger made with **Go**, receives only interval and URL, and you can c
 
 ## Architecture
 * **Go** - main project language, all logic with API
-* **Terraform** - IaC instrument, auto server up
+* **OpenTofu** - IaC instrument, auto server up
 * **AWS** - Priority cloud for Terraform
 * **Redis** - Fast cache database, stores all IDs and last values of pings
 * **Ansible** - Auto project configuration

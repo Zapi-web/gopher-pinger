@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 1.14.8"
+  required_version = "~> 1.11.0"
   backend "s3" {
     bucket         = "amzn-s3-unique-terraform-bucket-271598835315-eu-central-1-an"
     key            = "terraform-tfstate"

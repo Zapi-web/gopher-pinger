@@ -1,4 +1,4 @@
-name: Terraform CI
+name: OpenTofu CI
 
 on:
     workflow_call:
@@ -9,16 +9,16 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
-            - uses: hashicorp/setup-terraform@v3
+            - uses: opentofu/setup-opentofu@v2
 
-            - name: Terraform FMT
-              run: terraform fmt -recursive -check
+            - name: Tofu FMT
+              run: tofu fmt -recursive -check
 
-            - name: Terraform init -backend=false
-              run: terraform init
+            - name: Tofu init
+              run: tofu init -backend=false
 
-            - name: Terraform Validate
-              run: terraform validate
+            - name: Tofu Validate
+              run: tofu validate
 
             - name: Setup TFLint
               uses: terraform-linters/setup-tflint@v6
