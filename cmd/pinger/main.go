@@ -40,11 +40,9 @@ func main() {
 	appCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	state, err := database.New(cfg.Addr)
-
+	state, err := database.New(appCtx, cfg.Addr)
 	if err != nil {
-		slog.Error("failed to connect to database", "err", err)
-		os.Exit(1)
+		slog.Error("failed to initialize connection to database", "err", err)
 	}
 	defer state.Close()
 

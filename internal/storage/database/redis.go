@@ -24,7 +24,42 @@ type dataStruct struct {
 	Interval        int    `redis:"interval"`
 }
 
-func New(addr string) (*RedisDb, error) {
+func New(ctx context.Context, addr string) (*RedisDb, error) {
+	state, err := createAttempt(addr)
+
+	if err == nil {
+		return state, nil
+	}
+
+	slog.Error("failed to connect on first attempt", "err", err)
+
+	backOff := 1 * time.Second
+	maxBackOff := 40 * time.Second
+
+	for count := 2; ; count++ {
+		slog.Warn("can't connect to database, backing off", "retry_in", backOff, "attempt", count)
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backOff):
+			state, err = createAttempt(addr)
+			if err == nil {
+				slog.Info("connected to database successfully", "total_attempts", count)
+				return state, nil
+			}
+
+			slog.Error("database connection failed", "attempt", count, "err", err)
+
+			backOff *= 2
+			if backOff > maxBackOff {
+				backOff = maxBackOff
+			}
+		}
+	}
+}
+
+func createAttempt(addr string) (*RedisDb, error) {
 	var r RedisDb
 
 	r.rdb = redis.NewClient(&redis.Options{
