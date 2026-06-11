@@ -43,6 +43,7 @@ func main() {
 	state, err := database.New(appCtx, cfg.Addr)
 	if err != nil {
 		slog.Error("failed to initialize connection to database", "err", err)
+		os.Exit(1)
 	}
 	defer state.Close()
 
